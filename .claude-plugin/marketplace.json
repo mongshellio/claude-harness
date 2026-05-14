@@ -1,0 +1,34 @@
+{
+  "name": "mongshell-marketplace",
+  "owner": {
+    "name": "Mongshell",
+    "email": "seunghoon.park.kr@gmail.com"
+  },
+  "description": "Personal Claude Code plugin marketplace.",
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "tech-analyst",
+      "source": "./plugins/tech-analyst",
+      "description": "카테고리 내 라이브러리/인프라/도구 후보를 npm·GitHub 시계열 + WebSearch 보조 신호 + 출처 신뢰도 등급(A/B/C) 으로 분석해, 안정성·점유율·모멘텀·현 프로젝트 스택 호환성·마이그레이션 비용·백커·라이선스 리스크 총 7개 축으로 권고를 내는 기술 분석 전문가 agent.",
+      "category": "research",
+      "tags": ["analysis", "tech-selection", "korean"]
+    },
+    {
+      "name": "task-spec",
+      "source": "./plugins/task-spec",
+      "description": "/task 슬래시 커맨드. 인라인 요청을 구조화된 task spec 으로 자동 변환·사용자 review·승인 후 구현으로 진입합니다. 핑퐁/scope creep/추측 시작을 차단합니다.",
+      "category": "workflow",
+      "tags": ["command", "task-management", "workflow", "korean"]
+    },
+    {
+      "name": "business-name-review",
+      "source": "./plugins/business-name-review",
+      "description": "제품·브랜드·서비스 이름 후보를 받아 도메인 가용성(.com/.co/.app/.io/.ai/.co.kr/.kr) · 글로벌·국내 SaaS 키워드 충돌 · SNS 핸들 점유 (인스타·X·YouTube·네이버 카페·카카오톡) · 한국 KIPRIS 상표 출원 · 사업자/법인 상호 중복까지 5단계로 일괄 검토하고 🟢🟡🔴 종합 평가 + 다음 액션 체크리스트가 포함된 마크다운 리포트를 생성하는 skill.",
+      "category": "branding",
+      "tags": ["skill", "branding", "name-review", "domain", "trademark", "kipris", "korean"]
+    }
+  ]
+}
