@@ -17,7 +17,7 @@ tools: Read, Grep, Glob, Bash
 ## 역할
 
 1. **수집** — 변경된 `.claude/**/*.md` 파일을 git 으로 추출하고, agent / skill / README / 기타로 분류한다
-2. **컨텍스트 구축** — 컨텍스트 섹션의 필수 read 문서 + 하네스 파일 풀을 tiered loading 으로 적재한다
+2. **컨텍스트 구축** — 컨텍스트 섹션의 필수 read 문서를 적재하고, 하네스 파일 풀에서 대조 후보를 좁힌다
 3. **검증** — syntactic 정합성 + 단일 파일 정합성 + cross-cutting R&R 정합성 + 낭비 패턴을 다중 키로 점검한다
 4. **분류** — findings 를 공통 분류 등급([.claude/README.md](../README.md) § "공통 분류 등급")으로 분류한다
 5. **리포트** — 파일별 위반 사항을 line 번호와 함께 actionable 한 리포트로 합산한다
@@ -26,7 +26,7 @@ tools: Read, Grep, Glob, Bash
 
 **필수 read 문서** (harness-reviewer 가 호출되면 매번 의식. 루트 `CLAUDE.md` 는 자동 로드 — main-orchestration-violation 키 적용 시 자동 로드 본문 참조):
 
-- 하네스 파일 풀(`.claude/agents/**`, `.claude/skills/*/SKILL.md`, `.claude/README.md`·`.claude/required-docs.md`) — tiered loading 으로 컨텍스트 구성 (상세: 워크플로우 Step 3). frontmatter/description 인덱스는 항상 전체 적재, 본문은 후보 조건 충족 시만 read.
+- 하네스 파일 풀(`.claude/agents/**`, `.claude/skills/*/SKILL.md`, `.claude/README.md`·`.claude/required-docs.md`) — 인덱스로 대조 후보를 좁혀 컨텍스트를 구성 (상세: 워크플로우 Step 3).
 - `.claude/settings.json` (존재 시) — hook 등록과 skill/agent 명세 간 정합성(hook-registration-mismatch 키) 검증용.
 - Decision 파일 — `adr-content-mismatch` 검증 시 조건부 read (워크플로우 Step 4 참조).
 
@@ -61,24 +61,21 @@ git diff $RANGE -- '.claude/*.md' '.claude/**/*.md'
 - **README** — `.claude/README.md`
 - **기타** — `.claude/required-docs.md`, 그 외 `.claude/**/*.md`
 
-### Step 3. 컨텍스트 구축 (하네스 파일 풀 — tiered loading)
+### Step 3. 컨텍스트 구축 (하네스 파일 풀)
+
+하네스 파일 풀 전체의 name/description 을 인덱스로 훑어 대조 후보를 좁힌다:
 
 ```bash
-# Tier 0: frontmatter/description 인덱스 전체 (항상)
 ls .claude/agents/
 ls .claude/skills/
-# 각 파일의 frontmatter(name/description) 를 head -n 10 으로 스캔
-fd ".*\.md" .claude/agents/ .claude/skills/ -x head -n 10
+fd ".*\.md" .claude/agents/ .claude/skills/ -x head -n 10   # frontmatter 스캔
 ```
 
-**Tier 구조**:
-
-- **Tier 0 (항상)** — 하네스 파일 풀 전체의 name/description 인덱스 적재. skill-rnr-overlap / agent-rnr-overlap / dispatch-mismatch 의 1차 후보 좁히기는 이 인덱스로 수행.
-- **Tier 1 (항상 본문)** — 변경된 하네스 파일 전체 본문 read.
-- **Tier 2 (조건부 본문)** — 아래 OR 조건 중 하나라도 참인 비변경 하네스 파일만 본문 read:
-  - (a) **description 도메인 겹침**: 변경 파일과 description 키워드가 인접하거나 책임 범위가 겹치는 후보 — skill-rnr-overlap / agent-rnr-overlap 경계 모호한 후보쌍만 본문 대조. **보수적(recall 우선)** — 경계 판단이 애매하면 포함.
-  - (b) **Decision 인용 발견**: 변경 파일이 `Decision N`(legacy 순번) 또는 `Decision #N`(이슈번호) 을 인용한 경우 해당 decisions 파일 전체 read (adr-content-mismatch 절차 유지).
-  - (c) **dispatch-mismatch 후보**: 변경 파일이 skill 이고 "agent X 에 위임" 이라 적은 경우 → 그 agent 파일 본문 read. 변경 파일이 agent 이면 → Bash 도구로 `git grep -l '<agent-name>' .claude/skills/` 를 직접 실행해 호출 출처 skill 을 확정한 뒤 그 본문만 read.
+- 변경된 하네스 파일은 본문을 읽는다.
+- 비변경 하네스 파일 중 본문 대조가 필요한 후보:
+  - **description 도메인 겹침** — 변경 파일과 description 키워드가 인접하거나 책임 범위가 겹치는 후보. skill-rnr-overlap / agent-rnr-overlap 경계가 모호한 쌍이 대상이며, **보수적(recall 우선)** 으로 판단이 애매하면 포함한다.
+  - **Decision 인용 발견** — 변경 파일이 `Decision N`(legacy 순번) 또는 `Decision #N`(이슈번호) 을 인용한 경우 해당 decisions 파일 read (adr-content-mismatch 절차).
+  - **dispatch-mismatch 후보** — 변경 파일이 skill 이고 "agent X 에 위임" 이라 적었으면 그 agent 파일을 읽는다. 변경 파일이 agent 이면 `git grep -l '<agent-name>' .claude/skills/` 로 호출 출처 skill 을 확정한 뒤 읽는다.
 
 판단:
 - 컨텍스트 섹션의 필수 read 문서를 모두 적재.
@@ -166,7 +163,7 @@ fd ".*\.md" .claude/agents/ .claude/skills/ -x head -n 10
 ## 제약
 
 **반드시:**
-- 하네스 파일 풀 frontmatter/description 인덱스(Tier 0) 전체 + dispatch/rnr 후보 본문(보수적 recall, Tier 2) 적재 (변경된 하네스 파일만 보지 말 것 — cross-cutting R&R 검증 핵심)
+- 하네스 파일 풀 frontmatter/description 인덱스 전체 + dispatch/rnr 후보 본문(보수적 recall) 적재 (변경된 하네스 파일만 보지 말 것 — cross-cutting R&R 검증 핵심)
 - 각 위반에 `파일:line` 명시
 - 본문 인용은 짧게 (1~2 문장)
 - 위반 키(frontmatter-body-mismatch / frontmatter-schema-violation / skill-rnr-overlap / agent-rnr-overlap / dispatch-mismatch / main-orchestration-violation / hook-registration-mismatch / adr-content-mismatch / exception-clause-accumulation / perf-anti-pattern)를 각 finding 머리에 `[키]` 형태로 명시

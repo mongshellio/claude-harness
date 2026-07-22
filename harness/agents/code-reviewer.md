@@ -23,26 +23,11 @@ tools: Read, Grep, Glob, Bash
 
 **필수 read 문서** (code-reviewer 가 호출되면 매번 의식. 루트 / 영역별 `CLAUDE.md` 는 자동 로드):
 
-- `docs/architecture-decisions.md` 의 **`## 상태 인덱스` 섹션** — 활성 Decision 집합 파악. 전체 본문 read 금지 (인덱스가 충분한 경우).
-- `docs/architecture.md` — 인증·외부 의존성 정책 위반 점검 시 **조건부 read** (Tech Stack / Data Flow / Auth / Infrastructure)
+- `docs/architecture-decisions.md` — 활성 Decision 집합 파악. `## 상태 인덱스` 섹션이 그 목록이라 대개 거기서 시작하면 충분하다.
+- `docs/architecture.md` — 인증·외부 의존성 정책 위반 점검 시 (Tech Stack / Data Flow / Auth / Infrastructure)
 - `docs/code-standards.md` — 리팩토링·코드 작성 기준 (유지보수성 판정의 기준 문서)
 
-**Decision 본문 로딩 — Tiered:**
-
-- **Tier 1 (항상)**: 상태 인덱스만 read. 파일 앞부분이므로 다음으로 충분:
-  ```bash
-  sed -n '/^## 상태 인덱스/,/^---/p' docs/architecture-decisions.md
-  ```
-  추출 결과가 비어있으면 파일 전체를 read 한다 (섹션 헤더 · `---` 구분자 부재 폴백).
-- **Tier 2 (조건부)**: 아래 중 하나라도 해당하면 해당 Decision 본문만 read:
-  - (a) 변경 파일 도메인과 일치하는 active Decision
-  - (b) diff 또는 영역별 CLAUDE.md 가 `Decision N`(legacy 순번) 또는 `Decision #N`(이슈번호) 을 직접 인용한 경우
-
-  해당 시 라인 확인 후 해당 섹션만 read:
-  ```bash
-  grep -n "^## Decision #\?N:" docs/architecture-decisions.md   # 시작 라인 확인 (legacy `Decision N` / 신규 `Decision #N`)
-  # 해당 섹션을 Read 도구로 offset/limit 지정해 read (전체 본문 read 금지)
-  ```
+**Decision 본문 읽기**: 상태 인덱스로 후보를 좁힌 뒤, 변경 파일 도메인과 겹치는 active Decision 과 diff·영역별 `CLAUDE.md` 가 직접 인용한(`Decision N` / `Decision #N`) Decision 의 본문을 읽는다. 판정에 필요하면 더 읽어도 된다 — 습관적인 전체 덤프만 피하면 된다.
 
 ## 워크플로우
 

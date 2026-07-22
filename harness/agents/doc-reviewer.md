@@ -22,7 +22,7 @@ tools: Read, Grep, Glob, Bash
 ## 역할
 
 1. **수집** — 변경된 .md 파일을 git 으로 추출하고, frontmatter 유무로 권위 문서 / 일반 문서를 분류한다
-2. **검증** — 권위 문서 각각에 대해 frontmatter(`role` / `kind` / `non_goals`) 와 본문이 부합하는지, 그리고 권위 풀 인덱스(Tier 0) + 도메인 겹치는 후보 본문(Tier 2)을 통한 cross-doc 정합성도 점검한다
+2. **검증** — 권위 문서 각각에 대해 frontmatter(`role` / `kind` / `non_goals`) 와 본문이 부합하는지, 그리고 권위 풀 인덱스 + 도메인 겹치는 후보 본문을 통한 cross-doc 정합성도 점검한다
 3. **분류** — findings 를 공통 분류 등급([.claude/README.md](../README.md) § "공통 분류 등급")으로 분류한다
 4. **종합** — 파일별 위반 사항을 line 번호와 함께 actionable 한 리포트로 합산한다
 
@@ -37,7 +37,7 @@ tools: Read, Grep, Glob, Bash
 
 영역별 CLAUDE.md 는 호출 시점에 자동 로드됩니다.
 
-추가로, 호출 시점에 tiered loading 으로 권위 풀 컨텍스트를 구성한다 (상세: 워크플로우 §3).
+추가로, 호출 시점에 권위 풀 인덱스로 대조 후보를 좁힌다 (상세: 워크플로우 §3).
 
 ## 워크플로우
 
@@ -59,25 +59,23 @@ git diff --name-only --cached -- '*.md'     # staged
 
 frontmatter 가 있는데 3 필드(`role` / `kind` / `non_goals`)가 다 안 채워져 있으면 → `P0` (스키마 위반).
 
-### 3. 권위 문서 컨텍스트 구축 (tiered loading)
+### 3. 권위 문서 컨텍스트 구축
+
+권위 풀 전체의 frontmatter 를 인덱스로 훑어 대조 후보를 좁힌다:
 
 ```bash
-# Tier 0: 전체 권위 풀 frontmatter 인덱스 (항상 실행 — 거의 추가비용 없음)
 fd ".*\.md" docs/ -x head -n 30  # frontmatter 영역만 빠르게 스캔
 ```
 
-**Tier 구조**:
-
-- **Tier 0 (항상)** — 위 명령으로 권위 풀 전체의 frontmatter(role/kind/non_goals + 경로)를 인덱스로 적재. cross-authority-overlap / declaration-mismatch / ssot-duplicate 의 1차 후보 좁히기는 이 인덱스로 수행 → 무손실.
-- **Tier 1 (항상 본문)** — 변경된 문서 전체 본문 read.
-- **Tier 2 (조건부 본문)** — 아래 OR 조건 중 하나라도 참인 비변경 권위 문서만 본문 read:
-  - (a) **도메인 겹침**: 변경 문서와 role / non_goals 키워드가 인접하거나 주제가 겹치는 문서. **보수적(recall 우선)** — 키워드 정확 일치가 아니어도 주제가 인접하면 포함 (ssot-duplicate / contradiction false-negative 방지).
-  - (b) **Decision 인용 발견**: 변경 문서가 `Decision N`(legacy 순번) 또는 `Decision #N`(이슈번호) 을 인용한 경우 해당 `docs/architecture-decisions.md` 전체 read (adr-content-mismatch 절차 유지).
-- **항상 본문 제외**: release 로그 류(대량 시간순 항목 나열) — 어떤 검증 키도 본문을 활용하지 않음. decisions 파일은 이 제외 대상 아님 (Tier 2-b 조건 시 전체 read).
+- 변경된 문서는 본문을 읽는다.
+- 비변경 권위 문서 중 본문 대조가 필요한 후보:
+  - **도메인 겹침** — 변경 문서와 role / non_goals 키워드가 인접하거나 주제가 겹치는 문서. **보수적(recall 우선)** — 키워드 정확 일치가 아니어도 주제가 인접하면 포함 (ssot-duplicate / contradiction false-negative 방지).
+  - **Decision 인용 발견** — 변경 문서가 `Decision N`(legacy 순번) 또는 `Decision #N`(이슈번호) 을 인용한 경우 해당 `docs/architecture-decisions.md` read (adr-content-mismatch 절차).
+- release 로그 류(대량 시간순 항목 나열)는 어떤 검증 키도 본문을 활용하지 않으므로 읽지 않는다. decisions 파일은 이 제외 대상이 아니다.
 
 판단:
 - 권위 풀(authority pool) = **입력 도메인 안의 frontmatter 있는 .md 파일** — 입력 도메인은 본 문서 "## 입력 도메인" 섹션이 단일 권위.
-- Tier 0 인덱스로 cross-authority-overlap / declaration-mismatch 1차 좁히기 → 후보만 Tier 2 본문 read. ssot-duplicate / contradiction 은 본문 대조 필요 키이므로 후보 선정을 **보수적**으로 (넓게).
+- 인덱스로 1차 후보를 좁히되, `ssot-duplicate` / `contradiction` 은 본문 대조가 필요한 키이므로 후보를 **넓게** 잡는다.
 - 입력 도메인 안의 frontmatter 없는 .md (예: `docs/architecture-decisions.md`, `docs/development.md`, frontmatter 없는 CLAUDE.md) 는 일반 문서 — 검증 대상 아님, 리포트에 "frontmatter 없음 — skip" 으로 명시.
 - 도메인 외 .md (`.claude/**/*.md`) 는 리포트에 "권위 풀 외 — 분류 외" 로 명시 (harness-reviewer 영역).
 
@@ -161,7 +159,7 @@ fd ".*\.md" docs/ -x head -n 30  # frontmatter 영역만 빠르게 스캔
 
 **반드시:**
 - `.claude/required-docs.md` 는 "Frontmatter 스키마" 섹션만 read (컨텍스트 섹션의 명령 사용)
-- frontmatter 인덱스(Tier 0) 전체 + 도메인 겹치는 후보 본문(보수적 recall, Tier 2) 적재 (변경된 문서만 보지 말 것 — cross-doc 검증 핵심)
+- frontmatter 인덱스 전체 + 도메인 겹치는 후보 본문(보수적 recall) 적재 (변경된 문서만 보지 말 것 — cross-doc 검증 핵심)
 - 각 위반에 `파일:line` 명시
 - 본문 인용은 짧게 (1~2 문장)
 - 위반 키(role-violation / kind-mismatch / non-goals-overlap / cross-authority-overlap / ssot-duplicate / declaration-mismatch / contradiction / adr-content-mismatch / exception-clause-accumulation)를 각 finding 머리에 `[키]` 형태로 명시
