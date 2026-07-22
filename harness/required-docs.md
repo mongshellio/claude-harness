@@ -221,7 +221,7 @@ non_goals:
 
 | 위치 | 동작 |
 |------|------|
-| `developer` agent | UI 변경 시 참조 — `src/components/CLAUDE.md` 자동 로드 경유 reach |
+| `developer` agent | UI 변경 시 참조 — 컴포넌트 영역 `CLAUDE.md` 자동 로드 경유 reach |
 
 ---
 

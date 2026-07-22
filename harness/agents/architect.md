@@ -88,7 +88,7 @@ tools: Read, Grep, Glob, WebSearch, WebFetch
 
 **섹션 적용 가이드**: 핵심 결정 포인트가 없는 섹션은 생략 가능. 예: 단순 패턴 확인은 영향 영역 + 다음 단계만, schema 변경 없으면 데이터 모델 생략.
 
-schema 적용 절차는 [src/lib/db/CLAUDE.md](../../src/lib/db/CLAUDE.md) §5 가 권위 — 본 권고에서 별도 섹션으로 다루지 않고, schema 변경 사실은 "영향 영역" 에 한 줄로 표기.
+schema 적용 절차는 DB 영역 CLAUDE.md(마이그레이션 정책 섹션)가 권위 — 본 권고에서 별도 섹션으로 다루지 않고, schema 변경 사실은 "영향 영역" 에 한 줄로 표기.
 
 ```markdown
 ## 요약

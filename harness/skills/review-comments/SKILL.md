@@ -89,7 +89,7 @@ git push origin "$B"
 
 - type prefix 는 변경 성격에 따라 `fix` / `chore` / `feat` 로 결정한다.
 - push 는 명시 refspec(`origin "$B"`) — upstream(`@{u}`) 가정 금지.
-- "🤖 Generated with Claude Code" trailer 미포함 (이 하네스 기본 정책, /pr 동일).
+- trailer(`Co-Authored-By` / "🤖 Generated with Claude Code") 포함 여부의 권위 = 루트 `CLAUDE.md` (/pr 동일). 명시가 없으면 미포함.
 
 ### (옵션) PR 응답 코멘트
 
@@ -143,7 +143,7 @@ EOF
 - 본문에 인라인 백틱(`)이 있으면 BODY 변수 경유 필수. /pr / /create-issue 와 동일 패턴으로 명령 치환 재해석을 회피한다.
 - 분류 어휘는 [.claude/README.md](../../README.md) 의 "공통 분류 등급" 단일 권위 참조.
 - 커밋 메시지 톤은 한국어 conventional commits — CLAUDE.md 컨벤션 참조.
-- "🤖 Generated with Claude Code" trailer 미포함.
+- trailer 정책 권위 = 루트 `CLAUDE.md` (명시 없으면 미포함).
 
 ## 제약
 

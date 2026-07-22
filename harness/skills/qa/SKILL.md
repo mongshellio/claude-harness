@@ -16,7 +16,7 @@ description: >-
 
 - 사용자 명시 호출만: `/qa`, `/qa --branch`, `/qa --staged`, `/qa --skip-code-review`, `/qa --build`, `/qa --security`, `/qa --gemini`, `/qa --deepseek`
 - 트리거 키워드: "qa", "검증", "코드 리뷰"
-- ⚠️ 자동 호출 X. `/qa --branch` 가 PR 머지 전 검증 권위 — PR 생성 전 명시 호출이 권장 위치 (Decision 15: `/release` 는 더 이상 toolchain 게이트를 갖지 않음).
+- ⚠️ 자동 호출 X. `/qa --branch` 가 PR 머지 전 검증 권위 — PR 생성 전 명시 호출이 권장 위치 (`/release` 는 toolchain 게이트를 갖지 않는다).
 
 ## /plan 자동 iteration 과의 책임 경계
 
@@ -89,8 +89,7 @@ grep '^\.claude/' "$QA_TMP/md-changed.txt" > "$QA_TMP/harness-domain.txt" 2>/dev
 ```bash
 QA_TMP="/tmp/qa-$(basename "$(git rev-parse --show-toplevel)")"
 git diff $RANGE --name-only | grep -E '<ui-path-pattern>' > "$QA_TMP/ui-changed.txt" 2>/dev/null || true
-# UI 경로 패턴 권위: 컴포넌트 영역 CLAUDE.md (src/components/CLAUDE.md)
-# 패턴 예시: 'src/(components|app)/.*\.(tsx|ts)' — 구체값은 CLAUDE.md 참조
+# UI 경로 패턴 권위: 컴포넌트 영역 CLAUDE.md — 구체 glob 은 그 문서 참조
 ```
 
 위 결과로 이번 호출에서 실행할 검증 목록을 확정한다:
@@ -99,7 +98,7 @@ git diff $RANGE --name-only | grep -E '<ui-path-pattern>' > "$QA_TMP/ui-changed.
 |------|-----------|-----------|--------|
 | typecheck / test / lint | 코드 파일 변경 있음 | 코드 파일 변경 있음 | — |
 | build | **제외** | 코드 파일 변경 있음 | `--build` 지정 시 |
-| **schema 정합성** | **DB schema 경로 변경 있음** | **DB schema 경로 변경 있음** | — | <!-- ERD 산출물 검사: db:erd 실패 시 P0. 규약 권위: src/lib/db/CLAUDE.md §6 -->
+| **schema 정합성** | **DB schema 경로 변경 있음** | **DB schema 경로 변경 있음** | — | <!-- ERD 산출물 검사: <db-erd-cmd> 실패 시 P0. 규약 권위: DB 영역 CLAUDE.md -->
 | **decisions 인덱스 정합** | **decisions 파일(`architecture-decisions.md` / `harness-decisions.md` / `decisions-archive.md`) 변경 있음** | **동일** | — |
 | code-reviewer | 코드 파일 변경 있음 + `--skip-code-review` 미지정 | 코드 파일 변경 있음 + `--skip-code-review` 미지정 | — |
 | security-reviewer | **제외** | 코드 파일 변경 있음 | `--security` 지정 시 |
@@ -109,7 +108,7 @@ git diff $RANGE --name-only | grep -E '<ui-path-pattern>' > "$QA_TMP/ui-changed.
 | doc-reviewer | `$QA_TMP/doc-domain.txt` 비어있지 않음 | 동일 | — |
 | harness-reviewer | `$QA_TMP/harness-domain.txt` 비어있지 않음 | 동일 | — |
 
-- **DB schema 경로 변경 여부**: 변경 파일 목록에 DB schema 경로(권위: `src/lib/db/CLAUDE.md` — 구체 경로 패턴은 해당 CLAUDE.md 참조)가 포함되면 schema 정합성 검사를 실행 목록에 추가한다. schema 정합성은 (a) 마이그레이션 dirty + (b) ERD 산출물 staleness 두 검사를 함께 수행한다 (구체 명령·경로 권위: 동일 CLAUDE.md).
+- **DB schema 경로 변경 여부**: 변경 파일 목록에 DB schema 경로(권위: DB 영역 CLAUDE.md — 구체 경로 패턴은 해당 문서 참조)가 포함되면 schema 정합성 검사를 실행 목록에 추가한다. schema 정합성은 (a) 마이그레이션 dirty + (b) ERD 산출물 staleness 두 검사를 함께 수행한다 (구체 명령·경로 권위: 동일 CLAUDE.md).
 
 ### Step 2: 조건부 사전 확인
 
@@ -166,7 +165,7 @@ QA_TMP="/tmp/qa-$(basename "$(git rev-parse --show-toplevel)")"
 #   (b) ERD staleness: <db-erd-cmd> 후 <erd-output-paths> dirty (둘 다 dirty 비어있어야 Passed)
 # ( <db-generate-cmd> && git status --porcelain <migration-dir>/ ; \
 #   <db-erd-cmd> && git status --porcelain <erd-output-paths> ) > "$QA_TMP/schema.txt" 2>&1 &
-# (구체 명령·경로 권위: src/lib/db/CLAUDE.md — db-generate-cmd / migration-dir / db-erd-cmd / ERD 산출물 §6)
+# (구체 명령·경로 권위: DB 영역 CLAUDE.md — db-generate-cmd / migration-dir / db-erd-cmd / ERD 산출물)
 # decisions 인덱스 정합: decisions 파일(architecture-decisions / harness-decisions / decisions-archive) 변경 시에만 실행
 # 결정적(deterministic) 판정은 모델 추론이 아니라 스크립트로 처리한다 (harness-rules.md 스크립트 우선 원칙).
 # 헤더 식별자 집합 vs 상태 인덱스/목차 집합을 대조해 MISSING(헤더에만)/DANGLING(인덱스에만)/중복/NO_SECTION 을 검출한다 —
@@ -397,7 +396,7 @@ git rev-parse HEAD > "$QA_TMP/last-qa-sha"
 
 - "고쳐줘" — P0 부터 `developer` 서브에이전트에 위임한다.
 - "외부 LLM 의견 무시" — 사용자 확인 후 Gemini/DeepSeek findings 를 제외하고 종료한다.
-- "릴리스" — `/release vX.Y.Z` 별도 호출을 안내한다. `/qa --branch` 통과가 /pr 의 marker 게이트 입력이 된다 (Decision 16). **PR 생성 전** `/qa --branch` 실행이 권장되는 위치 — /pr Step 0 marker 게이트에서 확인됨.
+- "릴리스" — `/release vX.Y.Z` 별도 호출을 안내한다. `/qa --branch` 통과가 /pr 의 marker 게이트 입력이 된다. **PR 생성 전** `/qa --branch` 실행이 권장되는 위치 — /pr Step 0 marker 게이트에서 확인됨.
 
 ## P2 라운드 종결 규칙
 
@@ -532,4 +531,4 @@ security-reviewer / build 등 `--branch` 전용 항목과 외부 LLM 리뷰(`--g
   - 코드 변경 (프로젝트 toolchain 입력) 은 `developer` 서브에이전트에 위임
   - 문서 / 하네스 편집은 X — Agent 호출 + bash 검증만 수행
 - 검증 명령(typecheck/test/lint/build)은 `/qa` 가 직접 bash로 실행한다(`.claude/README.md` "검증 명령 실행 책임" 참조). reviewer 에이전트는 순수 코드 리뷰만 수행한다.
-- `/release` 는 더 이상 toolchain 게이트를 갖지 않는다 (Decision 15). `/qa` 가 PR 머지 전 검증 권위이며, `/release` 는 PR 게이트 통과 상태를 신뢰하고 origin/main 을 태깅한다.
+- `/release` 는 toolchain 게이트를 갖지 않는다. `/qa` 가 PR 머지 전 검증 권위이며, `/release` 는 PR 게이트 통과 상태를 신뢰하고 origin/main 을 태깅한다.
