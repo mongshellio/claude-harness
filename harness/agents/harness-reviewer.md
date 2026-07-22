@@ -18,7 +18,7 @@ tools: Read, Grep, Glob, Bash
 
 1. **수집** — 변경된 `.claude/**/*.md` 파일을 git 으로 추출하고, agent / skill / README / 기타로 분류한다
 2. **컨텍스트 구축** — 컨텍스트 섹션의 필수 read 문서 + 하네스 파일 풀을 tiered loading 으로 적재한다
-3. **검증** — syntactic 정합성 + 단일 파일 정합성 + cross-cutting R&R 정합성 + 성능 안티패턴을 다중 키로 점검한다
+3. **검증** — syntactic 정합성 + 단일 파일 정합성 + cross-cutting R&R 정합성 + 낭비 패턴을 다중 키로 점검한다
 4. **분류** — findings 를 공통 분류 등급([.claude/README.md](../README.md) § "공통 분류 등급")으로 분류한다
 5. **리포트** — 파일별 위반 사항을 line 번호와 함께 actionable 한 리포트로 합산한다
 
@@ -103,17 +103,9 @@ fd ".*\.md" .claude/agents/ .claude/skills/ -x head -n 10
 - `adr-content-mismatch` — `.claude/**/*.md` 본문이 특정 Decision (`Decision N` / `Decision #N` / `(Decision N 참조)` / `[Decision N](...)`) 를 인용했지만, `docs/harness-decisions.md` 또는 `docs/architecture-decisions.md` 의 해당 Decision 본문의 결정·이유·결과 중 어느 것과도 직접 연결되지 않는 맥락에서 사용됨. 잘못된 권위 부여. (신규 결정은 이슈번호로 식별 — `Decision #N`.)
 - `exception-clause-accumulation` — skill/agent 명세 본문에 "단,", "다만,", "예외 —", "원칙적으로 X 인데 Y" 류 단서 조항이 누적되어 R&R 분리(입력 도메인 분리 · skill/agent 책임 경계) 를 흐림. 예: "도메인 외에도 X 수행", "단, X 도메인에서도 처리". 정규식으로 마커 검출 후 LLM 휴리스틱으로 false positive 회피. 단순 부가 설명("단, 자세한 내용은 X 참조") 은 제외 — 정책 단서일 때만 잡음.
 
-**성능 검증 (효율 안티패턴)**
+**낭비 패턴 검증**
 
-- `perf-anti-pattern` — 하네스 본문이 LLM 호출 비용·속도에 부정적 영향을 주는 패턴. 다음 sub-category 중 하나에 해당. 보고 시 `[perf-anti-pattern: <sub-category>]` 형태로 sub-category 명시.
-  - **자연어 비중 과다** — CLI 명령으로 정형화 가능한데 자연어로 길게 적힌 절차. 예: "변경된 .md 를 도메인별로 분리해서..." 같이 `git diff ... | grep ...` 으로 한 줄 가능한 작업이 여러 문장.
-  - **자동 로드 자산 명시 read** — 루트 / 영역별 `CLAUDE.md` 같이 자동 로드되는 자산을 "필수 read" 로 명세에 적은 경우. 자동 로드 의존 가이드는 `CLAUDE.md` 의 Sub-Documents 참조.
-  - **불필요 권위 read** — agent 의 검증 키 / 동작에 활용되지 않는 권위 문서를 "필수 read" 로 적은 경우.
-  - **agent 호출 정당성 부족** — 단순 grep / 단순 파일 매칭처럼 메인 세션 또는 bash 로 더 빨리 가능한 작업을 하위 agent 에 위임.
-  - **출력 길이 미명시** — agent 결과 형식(길이 제약, 인용 길이) 안내 부재 → 자유 형식 → 토큰 ↑.
-
-  검출은 LLM 휴리스틱으로 수행한다.
-  단, `docs/harness-decisions.md` / `docs/architecture-decisions.md` 본문(과거 Decision 스냅샷)에 포함된 카운트 표현은 `perf-anti-pattern` 검출 대상 제외 — Decision 본문은 하네스 파일이 아니며 소급 적용하지 않는다.
+- `perf-anti-pattern` — 하네스 본문에 실익 없이 호출 비용만 늘리는 지시가 있는 경우. sub-category 목록의 권위는 `.claude/README.md` § "본문 작성 가이드 — 낭비 패턴" 이며 여기에 복제하지 않는다. 보고 시 `[perf-anti-pattern: <sub-category>]` 형태로 명시하고, 검출은 LLM 휴리스틱으로 수행한다.
 
 **Decision 참조 검증 (`adr-content-mismatch`) 절차**:
 
@@ -134,8 +126,8 @@ fd ".*\.md" .claude/agents/ .claude/skills/ -x head -n 10
 등급 의미는 `.claude/README.md` "공통 분류 등급" 참조. 본 reviewer 의 위반 키 → 등급 매핑:
 
 - `P0` — frontmatter-schema-violation / frontmatter-body-mismatch 명백한 모순 / skill-rnr-overlap 통째 / agent-rnr-overlap 통째 / dispatch-mismatch 양방향 모순 / main-orchestration-violation 명백 위반 / exception-clause-accumulation 명세 안 cross-domain 침범 예외
-- `P1` — 부분적 frontmatter-body-mismatch / 짧은 R&R 침범 / hook-registration-mismatch / adr-content-mismatch / exception-clause-accumulation 정책 비대칭 단서 / perf-anti-pattern 의 명백한 영향 (자연어 비중 과다 / 자동 로드 read / 불필요 read)
-- `P2` — 톤·표현 보완 / description 길이 최적화 / perf-anti-pattern 의 판단 모호 (agent 호출 정당성 / 출력 길이)
+- `P1` — 부분적 frontmatter-body-mismatch / 짧은 R&R 침범 / hook-registration-mismatch / adr-content-mismatch / exception-clause-accumulation 정책 비대칭 단서 / perf-anti-pattern 의 명백한 영향 (자동 로드 문서 read)
+- `P2` — 톤·표현 보완 / description 길이 최적화 / perf-anti-pattern 의 판단 모호 (agent 호출 정당성)
 
 ### Step 6. 리포트
 
