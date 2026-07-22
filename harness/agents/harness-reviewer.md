@@ -104,7 +104,7 @@ fd ".*\.md" "$H/agents/" "$H/skills/" -x head -n 10   # frontmatter 스캔
 - `main-orchestration-violation` — skill/agent 명세가 루트 CLAUDE.md 메인 세션 규칙의 위임 판단 기준(병렬성 / 메인 컨텍스트 격리 / 신선한 독립 리뷰)을 위반 — 즉 그 기준상 위임이 값하는 실질 구현을 메인 세션이 직접 Edit/Write 하도록 명세된 경우. 자명한 변경(한 줄·오타·기계적 텍스트 교정)의 직접 편집은 위반 아님. 위임 판단 기준·'자명한 변경' 경계의 SSOT = 루트 CLAUDE.md 메인 세션 규칙(자동 로드) — 본 키는 그 기준을 집행만 하고 재정의하지 않는다. `/pr` 처럼 의도된 예외는 명시되어 있으면 OK.
 - `hook-registration-mismatch` — `.claude/settings.json` 의 hook 등록(예: PostToolUse, UserPromptSubmit)과 skill/agent 명세에서 가정한 hook 동작이 불일치. 단, settings.json 이 .gitignore 일 수 있으니 존재 시에만 검증.
 - `adr-content-mismatch` — 하네스 `.md` 본문이 특정 Decision (`Decision N` / `Decision #N` / `(Decision N 참조)` / `[Decision N](...)`) 를 인용했지만, `docs/harness-decisions.md` 또는 `docs/architecture-decisions.md` 의 해당 Decision 본문의 결정·이유·결과 중 어느 것과도 직접 연결되지 않는 맥락에서 사용됨. 잘못된 권위 부여. (신규 결정은 이슈번호로 식별 — `Decision #N`.)
-- `exception-clause-accumulation` — skill/agent 명세 본문에 "단,", "다만,", "예외 —", "원칙적으로 X 인데 Y" 류 단서 조항이 누적되어 R&R 분리(입력 도메인 분리 · skill/agent 책임 경계) 를 흐림. 예: "도메인 외에도 X 수행", "단, X 도메인에서도 처리". 정규식으로 마커 검출 후 LLM 휴리스틱으로 false positive 회피. 단순 부가 설명("단, 자세한 내용은 X 참조") 은 제외 — 정책 단서일 때만 잡음.
+- `exception-clause-accumulation` — 단서 조항이 쌓여 skill·agent 의 입력 도메인 분리와 책임 경계가 흐려지는 경우 (예: "도메인 외에도 X 수행"). 공통 판정 기준은 하네스 `README.md` § "예외 조항 누적 검증".
 
 **낭비 패턴 검증**
 

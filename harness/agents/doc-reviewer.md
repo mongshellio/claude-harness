@@ -98,7 +98,7 @@ fd ".*\.md" docs/ -x head -n 30  # frontmatter 영역만 빠르게 스캔
 - `declaration-mismatch` — `role` 또는 본문에서 "X 의 단일 권위" 같은 선언을 했는데 X 가 본문에 실제로 없음, 또는 owns 한다고 한 항목이 빈약함.
 - `contradiction` — 변경 문서와 다른 권위 문서가 같은 사실에 대해 서로 **모순되는 주장** (예: PHILOSOPHY 의 SaaS-first 와 architecture 의 자체 구현 권장). 인용 + 모순 지점 line 명시.
 - `adr-content-mismatch` — 본문이 특정 Decision (`Decision N` / `Decision #N` / `(Decision N 참조)` / `[Decision N](docs/architecture-decisions.md#decision-n-...)`) 을 인용했지만, `docs/architecture-decisions.md` 의 해당 Decision 본문의 결정·이유·결과 중 어느 것과도 직접 연결되지 않는 맥락에서 사용됨. 잘못된 권위 부여. (신규 결정은 이슈번호로 식별 — `Decision #N`.)
-- `exception-clause-accumulation` — 본문에 "단,", "다만,", "예외 —", "원칙적으로 X 인데 Y" 류 단서 조항이 누적되어 원본 정책(SSOT / R&R 분리 / 입력 도메인 분리) 간의 경계를 흐림. 정규식으로 마커 검출 후 LLM 휴리스틱으로 false positive 회피. 단순 부가 설명("단, 자세한 내용은 X 참조") 은 제외 — 정책 단서일 때만 잡음.
+- `exception-clause-accumulation` — 단서 조항이 쌓여 권위 문서 간 SSOT / R&R 분리 / 입력 도메인 분리의 경계가 흐려지는 경우. 공통 판정 기준은 하네스 `README.md` § "예외 조항 누적 검증".
 
 **Decision 참조 검증 (`adr-content-mismatch`) 절차**:
 
