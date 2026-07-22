@@ -1,19 +1,14 @@
-# claude-marketplace
+# claude-harness
 
-Mongshell 의 개인용 Claude Code 하네스·플러그인 SSOT.
+Mongshell 의 개인용 Claude Code 개발 하네스 SSOT.
 
-**배포 채널이 둘**이고, 성격이 다릅니다.
+`harness/` 아래의 agent·skill 이 단일 원본이고, `./sync-harness.sh sync` 로 각 프로젝트의 `.claude/` 에 배포됩니다. 배포본은 그 프로젝트 repo 에 커밋되므로 **clone 하는 모든 사람이 하네스를 함께 받습니다.**
 
-| 채널 | 담는 것 | 배포 방식 | 받는 쪽 |
-|---|---|---|---|
-| `plugins/` | repo 와 무관한 개인 도구 | `/plugin install` | 내 계정 전역 |
-| `harness/` | 프로젝트 개발 하네스 (agent·skill) | `./sync-harness.sh sync` → 프로젝트 `.claude/` 에 커밋 | 그 repo 를 clone 하는 모든 사람 |
+## 왜 플러그인이 아닌가
 
-## 왜 하네스는 플러그인이 아닌가
+Claude Code 플러그인으로 배포할 수도 있지만, 세 가지 이유로 파일 배포(vendoring)를 택했습니다.
 
-개발 하네스도 플러그인으로 만들 수 있지만, 세 가지 이유로 파일 배포(vendoring)를 택했습니다.
-
-- **협업자에게 설치를 요구하지 않는다.** 하네스 파일이 프로젝트 repo 안에 커밋되므로, 함께 개발하는 사람은 `git clone` 만 하면 됩니다. 마켓플레이스 접근 권한도 필요 없습니다.
+- **협업자에게 설치를 요구하지 않는다.** 하네스 파일이 프로젝트 repo 안에 커밋되므로, 함께 개발하는 사람은 `git clone` 만 하면 됩니다. 이 저장소 접근 권한도 필요 없습니다.
 - **이름이 일관된다.** 플러그인으로 배포하면 skill 이 `dev-harness:qa` 로 네임스페이스가 붙습니다. 하네스 본문에는 `/qa`·`/plan` 같은 자기참조가 150곳 넘게 있어서, 플러그인 프로젝트와 vendoring 프로젝트에서 호출 이름이 갈리면 본문을 두 벌로 유지해야 합니다.
 - **하네스 버전이 repo 커밋에 고정된다.** 과거 커밋을 체크아웃하면 그 시절 하네스가 함께 딸려옵니다. 플러그인은 항상 최신이라 과거 재현이 어긋납니다.
 
@@ -100,65 +95,10 @@ gh label create area:meta --color f9d0c4 --description "비-코드 작업 (.clau
 gh auth login
 ```
 
----
-
-## 플러그인 설치
-
-```
-/plugin marketplace add mongshellio/claude-marketplace
-/plugin install tech-analyst@mongshell-marketplace
-/plugin install task-spec@mongshell-marketplace
-/plugin install business-name-review@mongshell-marketplace
-```
-
-### tech-analyst
-
-기술 선택 분석 전문가 agent. npm·GitHub star 정량 시계열 + WebSearch 보조 신호 + 출처 신뢰도 등급(A/B/C) 으로 라이브러리·인프라 후보를 분석하고, 7개 축 (안정성 / 점유율 / 모멘텀 / 현 프로젝트 스택 호환성 / 마이그레이션 비용 / 백커 / 라이선스) 으로 권고를 냅니다.
-
-**호출 예**
-
-- "X vs Y 분석해줘"
-- "Redis 대안 뭐 있어?"
-- "Drizzle 계속 써도 돼?"
-- "ORM 골라줘"
-- "메시지 큐 비교"
-
-사용자 명시 호출 전용 (자동 위임 X).
-
-### task-spec
-
-`/task <요청>` 슬래시 커맨드. 인라인 요청을 4단계 절차로 구조화합니다:
-
-1. **Spec 자동 작성** — Goal / Done / Non-goals / 보호 영역 / 참고 / 영향 파일 을 Claude 가 추론해 채움 (사용자에게 캐묻지 않음)
-2. **프로젝트 특수 룰 적용** — CLAUDE.md / AGENTS.md 에서 발동되는 규약 자동 첨부
-3. **사용자 review** — 승인 또는 수정 지시 받기 전까지 정지
-4. **구현** — 확인된 spec 범위 안에서만 작업, 벗어나야 하면 일시 정지 후 재확인
-
-핑퐁 / scope creep / 추측 시작을 차단합니다.
-
-### business-name-review
-
-제품·브랜드·서비스 이름 후보의 사용 가능성을 5개 축으로 일괄 검토하는 skill. 결과는 🟢🟡🔴 종합 평가와 다음 액션 체크리스트가 포함된 마크다운 리포트.
-
-1. **도메인 가용성** — `.com / .co / .app / .io / .ai / .co.kr / .kr` 등 7종. `scripts/domain-check.sh` 로 dig·whois 일괄 조회 (`--format md/json` 지원)
-2. **글로벌·국내 SaaS 키워드 충돌** — 영문·한글·카테고리 결합 다각도 WebSearch
-3. **SNS 핸들 점유** — 글로벌(인스타·X·YouTube·Threads) + 한국(네이버 카페·블로그·카카오톡 채널)
-4. **KIPRIS 상표 출원** — 한국특허정보원 검색 + 클래스 9·35·41·42 안내
-5. **한국 상호·법인명 중복** — bizno.net·국세청·대법원 인터넷등기소 (한국 시장 진출 시)
-
-**호출 예**
-
-- "북담 이름 검토해줘"
-- "이 이름 쓸 수 있을까?"
-- "Foobar 도메인 살 수 있어?"
-- "이 이름으로 사업할 수 있는지 봐줘"
-
-실제 완성된 보고서 예시: `plugins/business-name-review/skills/business-name-review/examples/bookdam-report.md`
-
 ## 구조
 
 ```
-claude-marketplace/
+claude-harness/
 ├── sync-harness.sh              # 하네스 배포 / 드리프트 검사
 ├── harness/                     # 공유 하네스 → 프로젝트 .claude/
 │   ├── README.md                #   흐름도·라우팅·본문 작성 가이드
@@ -168,11 +108,5 @@ claude-marketplace/
 │   ├── skills/                  #   create-issue·plan·pr·qa·release·review-comments
 │   ├── references/              #   infra-gotchas (Neon·Vercel·drizzle 함정)
 │   └── scripts/                 #   Decision 인덱스·버전 검증
-├── .claude-plugin/
-│   └── marketplace.json
-├── plugins/                     # 개인 도구 → /plugin install
-│   ├── tech-analyst/
-│   ├── task-spec/
-│   └── business-name-review/
 └── README.md
 ```
