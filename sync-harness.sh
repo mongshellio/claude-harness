@@ -14,7 +14,7 @@ set -euo pipefail
 
 SSOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HARNESS_DIR="$SSOT_DIR/harness"
-SSOT_NAME="mongshellio/claude-marketplace"
+SSOT_NAME="mongshellio/claude-harness"
 
 # `.claude/` 안에 있지만 프로젝트가 소유하는 것 — sync 대상도, 고아 후보도 아니다.
 PROJECT_OWNED="skills/qa/browser-scenarios.md launch.json settings.json settings.local.json"
