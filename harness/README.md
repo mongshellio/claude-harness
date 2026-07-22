@@ -86,8 +86,8 @@ flowchart LR
 |---|---|---|
 | 프로젝트 toolchain 입력 코드 | `code-reviewer` | 활성 |
 | 프로젝트 toolchain 입력 코드 | `security-reviewer` | 활성 * |
-| 사용자/외부 독자 향 문서 (`**/*.md` 중 `.claude/**` 외 — 예: `docs/**/*.md`, 루트 + 영역별 `CLAUDE.md`, 기타 `README.md`) | `doc-reviewer` | 활성 |
-| 하네스 파일 (`.claude/**/*.md` — 예: `.claude/agents/*.md`, `.claude/skills/**`, `.claude/README.md`, `.claude/required-docs.md`) | `harness-reviewer` | 활성 |
+| 사용자/외부 독자 향 문서 (`**/*.md` 중 하네스 루트 밖 — 예: `docs/**/*.md`, 루트 + 영역별 `CLAUDE.md`, 기타 `README.md`) | `doc-reviewer` | 활성 |
+| 하네스 파일 (하네스 루트 아래 `**/*.md` — agents / skills / README / required-docs) | `harness-reviewer` | 활성 |
 
 > \* `security-reviewer` 의 `/plan` 루프 제외 등 호출시점 정책은 `.claude/skills/qa/SKILL.md` "/plan 자동 iteration 과의 책임 경계" 표 참조.
 
@@ -143,8 +143,8 @@ flowchart LR
 
 | reviewer | read-target | 검출 도메인 |
 |---|---|---|
-| `doc-reviewer` | `docs/architecture-decisions.md` | `**/*.md` 중 `.claude/**` 외 |
-| `harness-reviewer` | `docs/harness-decisions.md` + `docs/architecture-decisions.md` (양쪽) | `.claude/**/*.md` |
+| `doc-reviewer` | `docs/architecture-decisions.md` | `**/*.md` 중 하네스 루트 밖 |
+| `harness-reviewer` | `docs/harness-decisions.md` + `docs/architecture-decisions.md` (양쪽) | 하네스 루트 아래 `**/*.md` |
 
 ---
 
