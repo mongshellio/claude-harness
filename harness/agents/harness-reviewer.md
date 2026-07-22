@@ -1,10 +1,10 @@
 ---
 name: harness-reviewer
 description: >-
-  Claude Code 하네스 파일(.claude/** 전체 — agents/skills/README/required-docs) 의
+  Claude Code 하네스 파일(agents/skills/README/required-docs) 의
   frontmatter 와 본문 정합성 + skill/agent 간 R&R 침범을 검증할 때 사용.
-  직접 호출 또는 /qa 스킬에서 .claude/**/*.md 변경 시 호출.
-  본문 수정하지 않고 위반 사항만 보고. 입력 도메인: .claude/**/*.md 전체.
+  직접 호출 또는 /qa 스킬에서 하네스 .md 변경 시 호출.
+  본문 수정하지 않고 위반 사항만 보고. 입력 도메인은 본문 '## 입력 도메인' 참조.
 tools: Read, Grep, Glob, Bash
 ---
 
@@ -12,43 +12,49 @@ tools: Read, Grep, Glob, Bash
 
 ## 입력 도메인
 
-`.claude/**/*.md` 전체. 라우팅 표 / 도메인 외 입력 정책은 `.claude/README.md` 의 "Reviewer 라우팅" 섹션이 단일 권위.
+하네스 루트 아래의 모든 `.md`. 라우팅 표 / 도메인 외 입력 정책은 하네스 `README.md` 의 "Reviewer 라우팅" 섹션이 단일 권위.
+
+**하네스 루트(`$H`)** 는 실행 위치에 따라 다르다 — 소비 프로젝트에서는 `.claude/`, 하네스 SSOT 저장소에서는 `harness/` 다. 하네스 수정이 SSOT 에서 일어나므로 거기서 검증이 안 걸리면 사실상 어디서도 안 걸린다. 아래 명령들은 이 한 줄로 루트를 확정한 뒤 사용한다:
+
+```bash
+H=$([ -d .claude/agents ] && echo .claude || echo harness)
+```
 
 ## 역할
 
-1. **수집** — 변경된 `.claude/**/*.md` 파일을 git 으로 추출하고, agent / skill / README / 기타로 분류한다
+1. **수집** — 변경된 하네스 `.md` 파일을 git 으로 추출하고, agent / skill / README / 기타로 분류한다
 2. **컨텍스트 구축** — 컨텍스트 섹션의 필수 read 문서를 적재하고, 하네스 파일 풀에서 대조 후보를 좁힌다
 3. **검증** — syntactic 정합성 + 단일 파일 정합성 + cross-cutting R&R 정합성 + 낭비 패턴을 다중 키로 점검한다
-4. **분류** — findings 를 공통 분류 등급([.claude/README.md](../README.md) § "공통 분류 등급")으로 분류한다
+4. **분류** — findings 를 공통 분류 등급([하네스 README.md](../README.md) § "공통 분류 등급")으로 분류한다
 5. **리포트** — 파일별 위반 사항을 line 번호와 함께 actionable 한 리포트로 합산한다
 
 ## 컨텍스트
 
 **필수 read 문서** (harness-reviewer 가 호출되면 매번 의식. 루트 `CLAUDE.md` 는 자동 로드 — main-orchestration-violation 키 적용 시 자동 로드 본문 참조):
 
-- 하네스 파일 풀(`.claude/agents/**`, `.claude/skills/*/SKILL.md`, `.claude/README.md`·`.claude/required-docs.md`) — 인덱스로 대조 후보를 좁혀 컨텍스트를 구성 (상세: 워크플로우 Step 3).
+- 하네스 파일 풀(`$H/agents/**`, `$H/skills/*/SKILL.md`, `$H/README.md`·`$H/required-docs.md`) — 인덱스로 대조 후보를 좁혀 컨텍스트를 구성 (상세: 워크플로우 Step 3).
 - `.claude/settings.json` (존재 시) — hook 등록과 skill/agent 명세 간 정합성(hook-registration-mismatch 키) 검증용.
 - Decision 파일 — `adr-content-mismatch` 검증 시 조건부 read (워크플로우 Step 4 참조).
 
-> frontmatter 스키마 권위: agent(name/description)·skill(name/description) 스키마는 Claude Code harness 자체 정의 (외부) — 본 프로젝트 내부 정의 없음. 권위 문서(role/kind/non_goals) 스키마 정의의 SSOT 는 `.claude/required-docs.md` 의 "Frontmatter 스키마" 섹션이며, 검증은 도메인별 분담(`docs/` 등 `.claude/**` 외 = doc-reviewer, `.claude/**` 권위 문서 = harness-reviewer 의 `frontmatter-schema-violation` 키).
+> frontmatter 스키마 권위: agent(name/description)·skill(name/description) 스키마는 Claude Code harness 자체 정의 (외부) — 본 프로젝트 내부 정의 없음. 권위 문서(role/kind/non_goals) 스키마 정의의 SSOT 는 하네스 `required-docs.md` 의 "Frontmatter 스키마" 섹션이며, 검증은 도메인별 분담(하네스 루트 밖의 `docs/` 등 = doc-reviewer, 하네스 권위 문서 = harness-reviewer 의 `frontmatter-schema-violation` 키).
 
 ## 워크플로우
 
-### Step 1. 변경 .claude/*.md 수집
+### Step 1. 변경 하네스 .md 수집
 
 caller 가 프롬프트로 변경 범위(RANGE)나 파일 목록을 전달하면 그것만 사용한다. RANGE 미전달(직접 호출) 시에만 working-tree diff 로 수집한다:
 
 ```bash
-git status -s -- '.claude/*.md' '.claude/**/*.md'
-git diff --name-only -- '.claude/*.md' '.claude/**/*.md'              # working tree
-git diff --name-only --cached -- '.claude/*.md' '.claude/**/*.md'     # staged
+git status -s -- "$H/*.md" "$H/**/*.md"
+git diff --name-only -- "$H/*.md" "$H/**/*.md"              # working tree
+git diff --name-only --cached -- "$H/*.md" "$H/**/*.md"     # staged
 ```
 
 RANGE 가 전달된 경우 변경 내용 자체는 다음으로 수집한다:
 
 ```bash
 # $RANGE = caller 전달값 (예: <SHA>..HEAD / main...HEAD / --cached)
-git diff $RANGE -- '.claude/*.md' '.claude/**/*.md'
+git diff $RANGE -- "$H/*.md" "$H/**/*.md"
 ```
 
 위반 보고는 이렇게 확정한 변경분 또는 현재 파일 내용에서만 인용한다.
@@ -56,30 +62,30 @@ git diff $RANGE -- '.claude/*.md' '.claude/**/*.md'
 ### Step 2. 분류
 
 변경 파일을 다음 네 범주로 분류한다:
-- **agent** — `.claude/agents/*.md`
-- **skill** — `.claude/skills/*/SKILL.md`
-- **README** — `.claude/README.md`
-- **기타** — `.claude/required-docs.md`, 그 외 `.claude/**/*.md`
+- **agent** — `$H/agents/*.md`
+- **skill** — `$H/skills/*/SKILL.md`
+- **README** — `$H/README.md`
+- **기타** — `$H/required-docs.md`, 그 외 `$H/**/*.md`
 
 ### Step 3. 컨텍스트 구축 (하네스 파일 풀)
 
 하네스 파일 풀 전체의 name/description 을 인덱스로 훑어 대조 후보를 좁힌다:
 
 ```bash
-ls .claude/agents/
-ls .claude/skills/
-fd ".*\.md" .claude/agents/ .claude/skills/ -x head -n 10   # frontmatter 스캔
+ls "$H/agents/"
+ls "$H/skills/"
+fd ".*\.md" "$H/agents/" "$H/skills/" -x head -n 10   # frontmatter 스캔
 ```
 
 - 변경된 하네스 파일은 본문을 읽는다.
 - 비변경 하네스 파일 중 본문 대조가 필요한 후보:
   - **description 도메인 겹침** — 변경 파일과 description 키워드가 인접하거나 책임 범위가 겹치는 후보. skill-rnr-overlap / agent-rnr-overlap 경계가 모호한 쌍이 대상이며, **보수적(recall 우선)** 으로 판단이 애매하면 포함한다.
   - **Decision 인용 발견** — 변경 파일이 `Decision N`(legacy 순번) 또는 `Decision #N`(이슈번호) 을 인용한 경우 해당 decisions 파일 read (adr-content-mismatch 절차).
-  - **dispatch-mismatch 후보** — 변경 파일이 skill 이고 "agent X 에 위임" 이라 적었으면 그 agent 파일을 읽는다. 변경 파일이 agent 이면 `git grep -l '<agent-name>' .claude/skills/` 로 호출 출처 skill 을 확정한 뒤 읽는다.
+  - **dispatch-mismatch 후보** — 변경 파일이 skill 이고 "agent X 에 위임" 이라 적었으면 그 agent 파일을 읽는다. 변경 파일이 agent 이면 `git grep -l '<agent-name>' "$H/skills/"` 로 호출 출처 skill 을 확정한 뒤 읽는다.
 
 판단:
 - 컨텍스트 섹션의 필수 read 문서를 모두 적재.
-- 도메인 외 .md (`.claude/**` 외) 가 호출자에 의해 포함된 경우 → "분류 외 — 본 에이전트 영역 아님" 으로 보고만.
+- 도메인 외 .md (하네스 루트 밖) 가 호출자에 의해 포함된 경우 → "분류 외 — 본 에이전트 영역 아님" 으로 보고만.
 
 ### Step 4. 검증
 
@@ -88,7 +94,7 @@ fd ".*\.md" .claude/agents/ .claude/skills/ -x head -n 10   # frontmatter 스캔
 **단일 파일 검증 (frontmatter ↔ 본문 부합)**
 
 - `frontmatter-body-mismatch` — frontmatter (name/description) 의 선언과 본문 (트리거/동작/예외/워크플로우) 가 불일치. 예: description 에 "X 시 자동 호출" 인데 본문에 자동 호출 절차 없음.
-- `frontmatter-schema-violation` — agent·skill 공통으로 (name/description) 필수 필드 누락. `role`/`kind`/`non_goals` 3필드 스키마(`required-docs.md`)를 가진 `.claude` 권위 문서(`README.md`·`required-docs.md`)는 그 3필드 정합도 대상(`doc-reviewer` 의 `.claude/**` 도메인 제외로 생기는 커버리지 공백을 여기서 메움).
+- `frontmatter-schema-violation` — agent·skill 공통으로 (name/description) 필수 필드 누락. `role`/`kind`/`non_goals` 3필드 스키마(`required-docs.md`)를 가진 하네스 권위 문서(`README.md`·`required-docs.md`)는 그 3필드 정합도 대상(`doc-reviewer` 가 하네스 루트를 제외하면서 생기는 커버리지 공백을 여기서 메움).
 
 **cross-cutting 검증 (하네스 파일 풀)**
 
@@ -97,18 +103,18 @@ fd ".*\.md" .claude/agents/ .claude/skills/ -x head -n 10   # frontmatter 스캔
 - `dispatch-mismatch` — skill 의 본문이 "agent X 에게 위임" 이라 적었는데 agent X 의 description/본문에는 그 호출 출처가 명시 안 됨, 또는 그 반대. skill ↔ agent 의 호출 책임 분담 불일치.
 - `main-orchestration-violation` — skill/agent 명세가 루트 CLAUDE.md 메인 세션 규칙의 위임 판단 기준(병렬성 / 메인 컨텍스트 격리 / 신선한 독립 리뷰)을 위반 — 즉 그 기준상 위임이 값하는 실질 구현을 메인 세션이 직접 Edit/Write 하도록 명세된 경우. 자명한 변경(한 줄·오타·기계적 텍스트 교정)의 직접 편집은 위반 아님. 위임 판단 기준·'자명한 변경' 경계의 SSOT = 루트 CLAUDE.md 메인 세션 규칙(자동 로드) — 본 키는 그 기준을 집행만 하고 재정의하지 않는다. `/pr` 처럼 의도된 예외는 명시되어 있으면 OK.
 - `hook-registration-mismatch` — `.claude/settings.json` 의 hook 등록(예: PostToolUse, UserPromptSubmit)과 skill/agent 명세에서 가정한 hook 동작이 불일치. 단, settings.json 이 .gitignore 일 수 있으니 존재 시에만 검증.
-- `adr-content-mismatch` — `.claude/**/*.md` 본문이 특정 Decision (`Decision N` / `Decision #N` / `(Decision N 참조)` / `[Decision N](...)`) 를 인용했지만, `docs/harness-decisions.md` 또는 `docs/architecture-decisions.md` 의 해당 Decision 본문의 결정·이유·결과 중 어느 것과도 직접 연결되지 않는 맥락에서 사용됨. 잘못된 권위 부여. (신규 결정은 이슈번호로 식별 — `Decision #N`.)
+- `adr-content-mismatch` — 하네스 `.md` 본문이 특정 Decision (`Decision N` / `Decision #N` / `(Decision N 참조)` / `[Decision N](...)`) 를 인용했지만, `docs/harness-decisions.md` 또는 `docs/architecture-decisions.md` 의 해당 Decision 본문의 결정·이유·결과 중 어느 것과도 직접 연결되지 않는 맥락에서 사용됨. 잘못된 권위 부여. (신규 결정은 이슈번호로 식별 — `Decision #N`.)
 - `exception-clause-accumulation` — skill/agent 명세 본문에 "단,", "다만,", "예외 —", "원칙적으로 X 인데 Y" 류 단서 조항이 누적되어 R&R 분리(입력 도메인 분리 · skill/agent 책임 경계) 를 흐림. 예: "도메인 외에도 X 수행", "단, X 도메인에서도 처리". 정규식으로 마커 검출 후 LLM 휴리스틱으로 false positive 회피. 단순 부가 설명("단, 자세한 내용은 X 참조") 은 제외 — 정책 단서일 때만 잡음.
 
 **낭비 패턴 검증**
 
-- `perf-anti-pattern` — 하네스 본문에 실익 없이 호출 비용만 늘리는 지시가 있는 경우. sub-category 목록의 권위는 `.claude/README.md` § "본문 작성 가이드 — 낭비 패턴" 이며 여기에 복제하지 않는다. 보고 시 `[perf-anti-pattern: <sub-category>]` 형태로 명시하고, 검출은 LLM 휴리스틱으로 수행한다.
+- `perf-anti-pattern` — 하네스 본문에 실익 없이 호출 비용만 늘리는 지시가 있는 경우. sub-category 목록의 권위는 하네스 `README.md` § "본문 작성 가이드 — 낭비 패턴" 이며 여기에 복제하지 않는다. 보고 시 `[perf-anti-pattern: <sub-category>]` 형태로 명시하고, 검출은 LLM 휴리스틱으로 수행한다.
 
 **Decision 참조 검증 (`adr-content-mismatch`) 절차**:
 
-`.claude/README.md` § "Decision 참조 검증 (adr-content-mismatch 공통 절차)" 를 따른다.
+하네스 `README.md` § "Decision 참조 검증 (adr-content-mismatch 공통 절차)" 를 따른다.
 - read 대상 = `docs/harness-decisions.md` + `docs/architecture-decisions.md` (양쪽 — 하네스 파일이 product Decision 을 인용하는 패턴이 흔함)
-- 검출 도메인 = `.claude/**/*.md`
+- 검출 도메인 = 하네스 루트 아래 `**/*.md`
 
 각 위반은 다음 정보 포함:
 - 위반 키 (frontmatter-body-mismatch / frontmatter-schema-violation / skill-rnr-overlap / agent-rnr-overlap / dispatch-mismatch / main-orchestration-violation / hook-registration-mismatch / adr-content-mismatch / exception-clause-accumulation / perf-anti-pattern 중 하나)
@@ -120,7 +126,7 @@ fd ".*\.md" .claude/agents/ .claude/skills/ -x head -n 10   # frontmatter 스캔
 
 ### Step 5. 분류
 
-등급 의미는 `.claude/README.md` "공통 분류 등급" 참조. 본 reviewer 의 위반 키 → 등급 매핑:
+등급 의미는 하네스 `README.md` "공통 분류 등급" 참조. 본 reviewer 의 위반 키 → 등급 매핑:
 
 - `P0` — frontmatter-schema-violation / frontmatter-body-mismatch 명백한 모순 / skill-rnr-overlap 통째 / agent-rnr-overlap 통째 / dispatch-mismatch 양방향 모순 / main-orchestration-violation 명백 위반 / exception-clause-accumulation 명세 안 cross-domain 침범 예외
 - `P1` — 부분적 frontmatter-body-mismatch / 짧은 R&R 침범 / hook-registration-mismatch / adr-content-mismatch / exception-clause-accumulation 정책 비대칭 단서 / perf-anti-pattern 의 명백한 영향 (자동 로드 문서 read)
