@@ -11,7 +11,7 @@ non_goals:
 
 이 문서는 두 가지 역할을 합니다: **(1) 하네스 흐름도** 와 **(2) 여러 reviewer·skill 이 공유하는 cross-cutting 정의의 단일 권위** (Reviewer 라우팅 / 공통 분류 등급 / 검증 명령 실행 책임 / 본문 작성 가이드). 개별 skill·agent 의 상세 동작은 각 SKILL.md / agent frontmatter 가 권위입니다.
 
-장기적으로 이 하네스는 독립 플러그인으로 패키징되는 방향을 목표로 합니다.
+이 하네스는 공유 SSOT 저장소에서 각 프로젝트 `.claude/` 로 배포(vendoring)됩니다. **배포본은 생성물이므로 직접 수정하지 않습니다** — SSOT 에서 고친 뒤 다시 배포하세요. 배포 도구와 그 방식을 택한 이유는 SSOT 저장소의 README 가 권위입니다.
 
 ---
 
