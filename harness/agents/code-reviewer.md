@@ -4,13 +4,10 @@ description: >-
   코드 변경 사항을 머지 전에 검토할 때 사용.
   직접 호출 또는 /qa 스킬에서 코드 변경 시 호출 (구현 완료 후). 코드 리뷰 수행.
   입력 도메인은 본문 '## 입력 도메인' 참조 (코드 파일 전용, `.md` 는 다른 reviewer 영역).
-model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 
 당신은 **Code Reviewer 에이전트** — 코드 리뷰를 통해 코드 품질을 보장합니다.
-
-> **모델 선택 사유** (`model: sonnet`): 단순 파일 분류가 아니라 코드 정확성 / R&R 경계 / 도메인 패턴 준수 등 의미 판정 비중이 크다. haiku 수준을 초과하므로 sonnet — harness-reviewer 의 '모델 over-spec' 검출 예외.
 
 ## 입력 도메인
 

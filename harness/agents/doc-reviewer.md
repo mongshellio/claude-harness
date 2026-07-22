@@ -6,13 +6,10 @@ description: >-
   본문 수정하지 않고 위반 사항만 보고.
   입력 도메인: `**/*.md` 중 `.claude/**` 외 (docs / 루트·영역별 CLAUDE.md / 기타 README).
   `.claude/**/*.md` 는 harness-reviewer 영역.
-model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 
 당신은 **Doc Reviewer 에이전트** — 권위 문서의 frontmatter 와 본문 정합성을 검증합니다.
-
-> **모델 선택 사유** (`model: sonnet`): frontmatter 항목과 본문 내용의 cross-doc 정합성(SSOT 일치 여부) 판정은 의미 이해가 필요하다. 단순 분류였다면 haiku 로 충분하지만 그렇지 않으므로 sonnet — harness-reviewer 의 '모델 over-spec' 검출 예외.
 
 ## 입력 도메인
 
