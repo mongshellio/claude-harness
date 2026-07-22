@@ -53,16 +53,16 @@ non_goals:
   - **흐름**: 목업 합의 후 **(필요 시)** `architect` → `developer` 순으로 이어진다
   - **상수·절차**: 컴포넌트 영역 `CLAUDE.md` 권위
 - 대형 UI 변경(새 화면·레이아웃 재구성 등) 시 `architect` 에이전트 호출
-- **architect 권고문 DeepSeek 추론검증 (opt-in)**: architect 권고문 수신 후, 메인 세션은 opt-in 으로 DeepSeek 추론모드 교차검증 패스를 사용자에게 제안한다. 기본 skip, 게이트락 아님 (외부 LLM opt-in 원칙 — Decision 19·21·22 승계). architect 는 Bash tool 없음 → 메인 세션이 curl 실행.
+- **architect 권고문 DeepSeek 추론검증 (opt-in)**: architect 권고문 수신 후, 메인 세션은 opt-in 으로 DeepSeek 추론모드 교차검증 패스를 사용자에게 제안한다. 기본 skip, 게이트락 아님 (외부 LLM 은 opt-in 이 원칙). architect 는 Bash tool 없음 → 메인 세션이 curl 실행.
   - **메커니즘**: `.claude/skills/qa/SKILL.md` Step 3a 의 deepseek curl+jq 블록과 동일 패턴 (`DEEPSEEK_API_KEY` 필요). 아래 deltas 만 적용:
     - 입력 = architect **권고문 전문** (git diff 아님)
     - JSON body 에 추론모드 추가: `"reasoning_effort":"high"` + `"thinking":{"type":"enabled"}` (순추론 검증이므로). 응답 추출은 동일 (`.choices[0].message.content`; `reasoning_content` 는 무시)
     - 검증 프롬프트 골자: "다음은 architect 권고문이다. 이미 채택된 권장 옵션에 대해서만 critical/suggestion/nice 로: (1) architect 가 기각하지 않았으나 더 단순한 대안 (2) 본문에 안 드러난 트레이드오프·운영부담 (3) SSOT/Out-of-Scope 충돌 (4) Decision 후보 누락. 동의 코멘트·요약 금지. 1인 운영 단순성을 판단축으로. 한국어 평이체."
-  - findings 는 critical/suggestion/nice 로 분류 (파일:line 불필요 — 설계 단계라 권고문 항목 인용, 한국어 평이체). 메인 세션이 사용자에게 제시 → 결정 반영. Decision 22 참조.
+  - findings 는 critical/suggestion/nice 로 분류 (파일:line 불필요 — 설계 단계라 권고문 항목 인용, 한국어 평이체). 메인 세션이 사용자에게 제시 → 결정 반영.
 - 브랜치 네이밍 컨벤션:
-  - **git 브랜치명 = worktree 통일 키** (정의·환경 매핑 권위: `docs/architecture.md`). 키는 **첫 push 전에** 최종 이름으로 확정하고, **push 후 리네임 금지** (preview/Neon 리소스 고아화). 한 worktree = 한 브랜치.
+  - **git 브랜치명 = worktree 통일 키** (정의·환경 매핑 권위: `docs/architecture.md`). 키는 **첫 push 전에** 최종 이름으로 확정하고, **push 후 리네임 금지** (preview 인프라 리소스 고아화 — 스택별 상세: `references/infra-gotchas.md`). 한 worktree = 한 브랜치.
   - 단발 이슈: `(feat|fix|chore)/issue-N-<slug>` (예: `chore/issue-56-branch-naming`). 연관 이슈 동시 처리 시 `(feat|fix|chore)/issue-N-M-<slug>` 허용.
-  - 마일스톤 사이클 (`/plan` 단위): `cycle/<slug>` (예: `cycle/order-panel-revamp`). **버전 숫자를 브랜치명에 박지 않는다** — 슬러그가 유일성을 담당하고, 버전 번호는 `/release` 시점에 계산된다 (`docs/harness-decisions.md` Decision 11, Decision 14 로 갱신 — 버전 SSOT = git tag max). type-free prefix — 사이클은 feat/fix/chore 가 섞이는 묶음이므로 type 미부착. 사이클 시작 시 **첫 push 전** 리네임.
+  - 마일스톤 사이클 (`/plan` 단위): `cycle/<slug>` (예: `cycle/order-panel-revamp`). **버전 숫자를 브랜치명에 박지 않는다** — 슬러그가 유일성을 담당하고, 버전 번호는 `/release` 시점에 계산된다 (버전 SSOT = git tag max). type-free prefix — 사이클은 feat/fix/chore 가 섞이는 묶음이므로 type 미부착. 사이클 시작 시 **첫 push 전** 리네임.
   - `<slug>` 규칙: 작업/마일스톤 주제를 **kebab-case** (소문자 + 하이픈) 로. 통일 키 안정성을 위해 일관 표기 — `cycle/order-panel-revamp` (O), `cycle/OrderPanel` (X).
   - 자동 워크트리 (`claude/*`): isolation:worktree 로 생성되는 랜덤 브랜치. push 전 위 두 패턴 중 하나로 `git branch -m` 으로 rename 필수 (상세 절차: `.claude/skills/pr/SKILL.md` Step 0).
 - 머지 명령 (워크트리 전제): 워크트리에서 PR 머지는 `gh pr merge <N> --squash` 만 — `--delete-branch` **금지** (워크트리 `main` 점유와 충돌 `fatal: 'main' is already used by worktree`; remote 브랜치는 repo 설정 `delete_branch_on_merge` 가 자동 삭제하므로 불필요).

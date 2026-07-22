@@ -1,9 +1,10 @@
 ---
 name: create-issue
 description: >-
-  사용자의 의도("이거 하고 싶어")를 GitHub issue 로 변환.
-  Explore agent 로 코드베이스 조사 후 gh issue create.
+  사용자의 의도("이거 하고 싶어")를 GitHub issue 로 변환해
   프로젝트의 backlog 권위(GitHub Issues)에 등록하는 단일 진입점.
+  조사 정책: docs/issue-conventions.md 존재 시 그 문서를 따르고,
+  부재 시 Explore agent 코드베이스 조사가 기본.
 ---
 
 # /create-issue
@@ -30,7 +31,9 @@ gh issue list --search "<keyword>" --json number,title,labels,state --limit 20
 
 응답 대기. "아니 / 취소" 이면 스킬 종료.
 
-### Step 2: Explore agent 로 코드베이스 조사
+### Step 2: 코드베이스 조사 (조사 정책은 프로젝트 권위)
+
+**조사 정책 권위 = `docs/issue-conventions.md` (존재 시).** 그 문서가 조사 시점·범위를 달리 정하면(예: "이슈 생성 시 깊은 조사 생략, 착수 시 조사") 그 정책을 따르고 이 Step 의 기본 절차를 대체한다. 부재 시 아래가 기본.
 
 Agent 도구로 `subagent_type=Explore` 를 호출한다. 조사 범위:
 

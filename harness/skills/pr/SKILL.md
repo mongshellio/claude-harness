@@ -14,7 +14,7 @@ GitHub PR 생성의 단일 진입점. 브랜치명(1순위) 또는 커밋 메시
 
 - 명시 호출: "/pr", "PR 만들자", "pull request"
 - ⚠️ 자동 호출 X — 사용자가 작업 완료 시점에 명시 호출.
-- `/qa --branch` 통과 marker 게이트를 Step 0 에서 기계 확인한다 (Decision 16). 명시 skip 응답으로 우회 가능 (soft gate).
+- `/qa --branch` 통과 marker 게이트를 Step 0 에서 기계 확인한다. 명시 skip 응답으로 우회 가능 (soft gate).
 
 ## 동작
 
@@ -33,7 +33,7 @@ GitHub PR 생성의 단일 진입점. 브랜치명(1순위) 또는 커밋 메시
     명시 'skip' 응답 시에만 계속 진행. 그 외 응답은 stop.
   - 비고: `/tmp` 는 재부팅 시 휘발되어 파일이 사라진다. 이때 안전한 방향(재검증 권고)으로 폴백된다.
 - 현재 브랜치 = `main` → "feature 브랜치에서 호출해 주세요"
-- 브랜치명이 `^claude/` (auto-worktree 패턴) → "feature 브랜치명으로 rename 후 재호출 (예: `git branch -m chore/issue-N-<slug>`, 사이클이면 `cycle/<slug>`)". 리네임 → push 순서 강제 = 통일 키(git 브랜치명)를 push 전 확정해 preview/Neon 리소스 고아화 방지 (harness-rules 리네임 불변식).
+- 브랜치명이 `^claude/` (auto-worktree 패턴) → "feature 브랜치명으로 rename 후 재호출 (예: `git branch -m chore/issue-N-<slug>`, 사이클이면 `cycle/<slug>`)". 리네임 → push 순서 강제 = 통일 키(git 브랜치명)를 push 전 확정해 preview 인프라 리소스 고아화 방지 (harness-rules 리네임 불변식).
 - `git status` 결과 dirty → status 출력 + "commit 먼저"
 - `gh auth status` 미인증 → "`gh auth login` 후 재호출"
 - `gh pr list --head <branch>` 결과 있음 → 기존 PR URL 안내
@@ -137,7 +137,7 @@ gh pr view --json url,number,title,state --jq '{url, number, title, state}'
 - 본문에 인라인 백틱이 있으면 BODY 변수 경유 필수 (외부 double-quote 의 명령 치환 재해석 회피).
 - title 은 last commit (`git log -1 --pretty=%s`) 을 따른다. 한국어 conventional commits 톤은 CLAUDE.md 컨벤션 참조.
 - Closes 검출은 브랜치명 `issue-N` 패턴이 1순위(워크트리 내부 정보, base 무관), 커밋 메시지 `Closes #N` grep 은 보조. 단일 이슈 가정.
-- "🤖 Generated with Claude Code" trailer 미포함 (이 하네스 기본 정책).
+- trailer(`Co-Authored-By` / "🤖 Generated with Claude Code") 포함 여부의 권위 = 루트 `CLAUDE.md`. 명시가 없으면 미포함.
 
 ## 제약
 
