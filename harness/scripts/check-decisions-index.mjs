@@ -23,11 +23,17 @@
  *   파일 변경 시 호출. cwd 무관 — 스크립트 위치 기준으로 repo 루트를 해석한다
  *   (sibling check-decision-versions.mjs / check-journal-monotonic.mjs 와 동일 패턴).
  */
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+// repo 루트 = 스크립트가 놓인 위치가 속한 git 트리의 루트.
+// 위치 기준(-C scriptDir)이라 cwd 와 무관(다른 cwd 실행 시 false-green 방지)하고,
+// 배포 깊이(scripts/ vs .claude/scripts/)와도 무관하다. worktree 에서는 그 worktree 루트.
+const ROOT = execFileSync("git", ["-C", dirname(fileURLToPath(import.meta.url)), "rev-parse", "--show-toplevel"], {
+	encoding: "utf8",
+}).trim();
 
 // 파일별로 "인덱스 표를 여는 섹션 헤더"가 다르다: live 로그는 `## 상태 인덱스`(active/superseded 권위),
 // archive 는 `## 목차`(네비게이션 TOC — 상태 권위 아님).

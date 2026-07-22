@@ -28,9 +28,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// 스크립트 위치 기준 repo 루트 — cwd 와 무관하게 동작(다른 cwd 실행 시 false-green 방지).
-// sibling check-journal-monotonic.mjs 와 동일 패턴.
-const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+// repo 루트 = 스크립트가 놓인 위치가 속한 git 트리의 루트.
+// 위치 기준(-C scriptDir)이라 cwd 와 무관(다른 cwd 실행 시 false-green 방지)하고,
+// 배포 깊이(scripts/ vs .claude/scripts/)와도 무관하다. worktree 에서는 그 worktree 루트.
+const ROOT = execFileSync("git", ["-C", dirname(fileURLToPath(import.meta.url)), "rev-parse", "--show-toplevel"], {
+	encoding: "utf8",
+}).trim();
 const FILES = ["docs/architecture-decisions.md", "docs/harness-decisions.md"];
 
 /** git 명령 실행 — 항상 repo 루트에서. 실패(non-zero)는 빈 문자열로 흡수. */
