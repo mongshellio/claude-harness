@@ -87,7 +87,7 @@ flowchart LR
 | 프로젝트 toolchain 입력 코드 | `code-reviewer` | 활성 |
 | 프로젝트 toolchain 입력 코드 | `security-reviewer` | 활성 * |
 | 사용자/외부 독자 향 문서 (`**/*.md` 중 `.claude/**` 외 — 예: `docs/**/*.md`, 루트 + 영역별 `CLAUDE.md`, 기타 `README.md`) | `doc-reviewer` | 활성 |
-| 하네스 자산 (`.claude/**/*.md` — 예: `.claude/agents/*.md`, `.claude/skills/**`, `.claude/README.md`, `.claude/required-docs.md`) | `harness-reviewer` | 활성 |
+| 하네스 파일 (`.claude/**/*.md` — 예: `.claude/agents/*.md`, `.claude/skills/**`, `.claude/README.md`, `.claude/required-docs.md`) | `harness-reviewer` | 활성 |
 
 > \* `security-reviewer` 의 `/plan` 루프 제외 등 호출시점 정책은 `.claude/skills/qa/SKILL.md` "/plan 자동 iteration 과의 책임 경계" 표 참조.
 
@@ -167,23 +167,18 @@ flowchart LR
 
 ---
 
-## 본문 작성 가이드 — 성능 안티패턴
+## 본문 작성 가이드 — 낭비 패턴
 
-이 하네스 자산(`.claude/`) 본문 작성 시 LLM 호출 비용·속도에 부정적 영향을 주는 패턴. 작성·수정 시 사전 점검 기준. reviewer (`harness-reviewer`) 가 검출하는 `perf-anti-pattern` sub-category 와 1:1 매칭.
+하네스 본문에서 **실익 없이 호출 비용만 늘리는** 패턴. `harness-reviewer` 의 `perf-anti-pattern` 키가 검출하는 대상의 단일 권위입니다 — reviewer 본문은 이 목록을 복제하지 않고 참조합니다.
 
-- **자연어 비중 과다** — CLI 명령으로 정형화 가능한데 자연어로 길게 적힌 절차.
-  - 안티: "변경된 .md 를 도메인별로 분리해서 reviewer 에 전달..."
-  - 권고: `git diff $RANGE --name-only -- '*.md' | grep '^\.claude/' > /tmp/...` 같은 ready-to-run 명령.
-- **자동 로드 자산 명시 read** — 루트 / 영역별 `CLAUDE.md` 같이 자동 로드되는 자산을 "필수 read" 로 적지 않음. agent 호출 시 이미 컨텍스트에 있음.
-- **불필요 권위 read** — agent 의 검증 키 / 동작에 활용되지 않는 권위 문서를 "필수 read" 로 적지 않음. 활용처가 명확한 부분만 read. 무분별 풀 전체 본문 read 가 안티패턴.
-- **agent 호출 정당성 부족** — 단순 grep / 파일 매칭은 메인 세션 또는 bash 로 처리. 하위 agent 호출은 큰 분석 영역 (R&R / 정합성) 에 한정.
-- **출력 길이 미명시** — agent 호출 시 결과 형식 (인용 길이, 분류 등) 명시. 자유 형식 회피.
+- **자동 로드 문서 명시 read** — 루트 / 영역별 `CLAUDE.md` 처럼 자동 로드되는 문서를 "필수 read" 로 적지 않습니다. agent 호출 시점에 이미 컨텍스트에 있습니다.
+- **agent 호출 정당성 부족** — 단순 grep / 파일 매칭은 메인 세션이나 bash 로 처리합니다. 하위 agent 호출은 판단이 필요한 분석에 한정합니다.
 
-**판정 휴리스틱**: 이 패턴으로 작성하면 LLM 호출 토큰 ↑ 또는 속도 ↓ 되는가? → Yes 면 안티패턴.
+**판정 휴리스틱**: 이 지시를 지워도 결과가 같은가? → Yes 면 낭비.
 
-**예외 — reviewer 의도된 cross-doc read**: cross-doc 검증이 목적인 reviewer 의 tiered loading(Tier 0 인덱스 전체 + 조건부 Tier 2 후보 본문) 준수 read 는 "불필요 권위 read" 안티패턴이 아니다.
-
-**예외 (의도된 자연어)**: `conceptual` kind 권위 문서 (PHILOSOPHY.md, design.md 등) 는 사람 가독성이 본질. 자연어 비중 과다는 그쪽에서는 안티패턴 아님 — 본 가이드는 하네스 (`.claude/`) 본문에만 적용.
+> **목록이 짧은 이유**: 예전에는 "권위 문서는 최소한만 read", "출력 형식을 조여 토큰 절감", "작은 작업엔 작은 모델" 같은 항목이 함께 있었습니다. 컨텍스트가 좁고 모델이 비싸던 시절의 최적화인데, 지금은 **덜 읽어서 놓치는 비용** 과 **형식에 갇혀 판단을 못 적는 비용** 이 더 큽니다. 절약이 목적이 되면 검증 품질이 먼저 깎입니다.
+>
+> 절차를 CLI 로 정형화하는 것 자체는 여전히 옳지만, 그건 비용이 아니라 **결정성** 의 문제라 [harness-rules.md](./harness-rules.md) § "스크립트 우선 원칙" 이 권위입니다.
 
 ---
 
