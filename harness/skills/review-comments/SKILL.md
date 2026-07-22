@@ -1,0 +1,154 @@
+---
+name: review-comments
+description: >-
+  PR 리뷰 코멘트 처리의 단일 진입점.
+  코멘트 fetch → 통일 분류 (공통 분류 등급) → developer 위임 → commit + push.
+  트리거 — "/review-comments", "리뷰 코멘트 처리".
+---
+
+# /review-comments
+
+PR 리뷰 코멘트 처리의 단일 진입점. 코멘트 fetch → 분류 → 수정 위임 → commit + push. 1인 self-review 컨텍스트라 외부 리뷰어 전제하지 않는다.
+
+> 빌트인 `/review` (PR 리뷰 작성) 와 구별 — 이 스킬은 **기존 리뷰 코멘트를 처리(수정 반영)** 하는 용도.
+
+## 언제 호출하는가
+
+- 명시 호출: "/review-comments", "/review-comments `<PR-N>`"
+- 트리거 키워드: "/review-comments", "리뷰 코멘트 처리"
+- ⚠️ 자동 호출 X. /pr / /qa 와 동일 정책.
+
+## 동작
+
+### Step 0: 사전 확인
+
+- `gh auth status` 검증. 미인증 → stop + `gh auth login` 안내.
+- `git status` 로 working tree dirty 여부 확인. dirty 면 `git status` 출력 + stop ("commit 먼저" 안내).
+- `B=$(git branch --show-current)` 기준으로 unpushed 를 확인한다 — upstream(`@{u}`)이 `origin/$B` 가 아닐 수 있으므로 `@{u}` 를 쓰지 않는다(upstream 불신 원칙은 `/pr` Step 0 과 동일하되, 이 스킬은 PR 존재가 전제라 `origin/$B` 부재를 첫 push 유도가 아닌 stop 으로 처리).
+  - `git rev-parse --verify -q origin/"$B"` 실패 → PR 브랜치 전제 깨짐 → stop + 안내.
+  - 성공 → `git log origin/"$B".. --oneline` 으로 unpushed commits 확인. 있으면 warn + "의도한 건가요?" 사용자에게 진행 여부 묻기.
+
+### Step 1: PR 식별
+
+- 인자 `<PR-N>` 있으면 그대로 사용.
+- 없으면 자동 감지:
+
+```bash
+gh pr list --head $(git branch --show-current) --json number,url --jq '.[0]'
+```
+
+- 둘 다 실패하면 `gh pr list --state open` 결과를 보여주고 사용자에게 번호를 묻는다.
+
+### Step 2: 코멘트 fetch
+
+두 종류 모두 수집한다:
+
+```bash
+gh pr view <N> --json comments --jq '.comments'
+gh api repos/{owner}/{repo}/pulls/<N>/comments
+```
+
+- 본인 작성 코멘트도 포함한다 — self-review history 기록용. 분류 대상에 포함. 본인 코멘트도 0개면 "처리할 코멘트가 없습니다. 종료할까요?" 사용자 확인.
+- 외부 리뷰어 코멘트 없이 본인 코멘트만 있는 경우도 동일하게 처리한다.
+
+### Step 3: 분류 + 사용자 confirm
+
+휴리스틱 분류:
+
+| 키워드 | 분류 |
+|--------|------|
+| must / 버그 / blocker / critical / 수정 필요 / P0 | P0 |
+| should / 권장 / 고치는 게 좋겠 / P1 / suggestion | P1 |
+| nit / nice / minor / 선택 / ideally / P2 | P2 |
+| (매치 없음) | LLM(메인 세션)이 본문으로 판단 |
+
+분류 키워드 매치 0건 + LLM 판단 모호한 경우 → 사용자에게 분류를 직접 요청한다.
+
+미리보기를 P0 / P1 / P2 섹션별로 출력한 뒤 사용자 confirm 을 대기한다.
+
+### Step 4: developer 위임 (P0 일괄)
+
+- P0 전체를 한 번에 `developer` 서브에이전트에 위임한다 (PR 당 평균 1~2건이라 건별 분리 무의미).
+- 프롬프트에 포함: PR 번호 / 코멘트 본문 / "/review-comments 스킬에서 호출됨".
+- P1 는 사용자 요청 시에만 추가 위임한다 (기본 보류).
+- P2 는 처리하지 않는다 (리포트에만 기재).
+- developer 가 변경 범위에 대한 기본 검증을 수행한다 (typecheck / 테스트 — 구체 명령은 `docs/development.md` 참조). 전체 QA 검증이 필요하면 Step 6 이후 사용자가 `/qa` 를 별도 호출한다.
+
+### Step 5: commit + push
+
+메인 세션이 직접 수행한다 (CLAUDE.md 오케스트레이터 규칙):
+
+```bash
+BODY=$(cat <<'EOF'
+fix: PR #<N> 리뷰 코멘트 반영
+EOF
+B=$(git branch --show-current)
+) && git add <변경 파일> && git commit -m "$BODY"
+git push origin "$B"
+```
+
+- type prefix 는 변경 성격에 따라 `fix` / `chore` / `feat` 로 결정한다.
+- push 는 명시 refspec(`origin "$B"`) — upstream(`@{u}`) 가정 금지.
+- "🤖 Generated with Claude Code" trailer 미포함 (이 하네스 기본 정책, /pr 동일).
+
+### (옵션) PR 응답 코멘트
+
+- 기본 동작: 응답 코멘트 작성하지 않는다 (self-review 맥락에서 의미 약함).
+- 사용자가 "응답 남겨" 요청 시에만:
+
+```bash
+BODY=$(cat <<'EOF'
+리뷰 코멘트 반영 완료 — commit <SHA> 참고.
+EOF
+) && gh pr comment <N> --body "$BODY"
+```
+
+### Step 6: 최종 리포트 (해당 없는 섹션은 생략)
+
+```markdown
+## PR <N> 리뷰 코멘트 처리 완료
+
+- PR: <URL>
+- 처리 결과:
+  - P0: N건 처리
+  - P1: M건 (보류/처리)
+  - P2: K건 (리포트 only)
+- commit: <SHA> "<message>"
+- 검증 (developer 결과):
+  - 타입 체크: ✅/❌
+  - 테스트: ✅/❌
+- 응답 코멘트: 작성함/생략
+
+다음 단계:
+- 추가 검증 필요 시 /qa 호출
+- 머지 준비되면 사용자가 수동 머지
+```
+
+## 예외 처리
+
+| 상황 | 동작 |
+|------|------|
+| gh auth 미인증 | stop + `gh auth login` 안내 |
+| working tree dirty | stop + `git status` 출력 |
+| unpushed commits | warn + 진행 여부 묻기 |
+| `origin/$B` 부재 | stop + 안내 (PR 브랜치 전제 깨짐) |
+| PR 자동 감지 실패 + 인자 없음 | `gh pr list --state open` 결과 + 사용자에게 번호 묻기 |
+| PR 코멘트 0개 | 사용자 확인 후 결정 |
+| 분류 키워드 매치 0건 + LLM 판단 모호 | 사용자에게 분류 직접 요청 |
+| developer P0 처리 실패 | stop + 출력 전달 |
+| gh pr comment 실패 | warn + 리포트에 명시 |
+
+## 컨벤션
+
+- 본문에 인라인 백틱(`)이 있으면 BODY 변수 경유 필수. /pr / /create-issue 와 동일 패턴으로 명령 치환 재해석을 회피한다.
+- 분류 어휘는 [.claude/README.md](../../README.md) 의 "공통 분류 등급" 단일 권위 참조.
+- 커밋 메시지 톤은 한국어 conventional commits — CLAUDE.md 컨벤션 참조.
+- "🤖 Generated with Claude Code" trailer 미포함.
+
+## 제약
+
+- 메인 세션이 절차를 오케스트레이션한다. 리뷰 코멘트 처리 효과:
+  - 코드 (.ts/.tsx 등) 변경은 `developer` 서브에이전트에 위임
+  - 문서/설정 (.md/.json) 편집은 직접 수행 — gh api / 분류 / git commit / push — 코드 수정은 developer 위임
+- /qa 와 독립. /review-comments 완료 후 /qa 자동 호출 X. 필요 시 사용자가 별도 호출한다.
+- PR 머지는 포함하지 않는다. 사용자 영역.

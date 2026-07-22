@@ -1,0 +1,167 @@
+---
+name: create-issue
+description: >-
+  사용자의 의도("이거 하고 싶어")를 GitHub issue 로 변환.
+  Explore agent 로 코드베이스 조사 후 gh issue create.
+  프로젝트의 backlog 권위(GitHub Issues)에 등록하는 단일 진입점.
+---
+
+# /create-issue
+
+사용자의 요청을 받아 코드베이스를 조사하고 GitHub issue 를 생성하는 단일 진입점.
+
+## 언제 호출하는가
+
+- "이거 기능 추가하고 싶어", "이 버그 등록해", "TODO 이슈로 남겨줘" 등 backlog 에 등록할 의도를 표현할 때
+- `gh issue list` 대신 자연어로 이슈를 만들고 싶을 때
+- ⚠️ 자동 호출 X — 사용자가 backlog 등록 의도를 명시 표현할 때만 호출.
+
+## 동작
+
+### Step 1: 중복 체크
+
+```bash
+gh issue list --search "<keyword>" --json number,title,labels,state --limit 20
+```
+
+유사 이슈가 있으면 사용자에게 알리고 진행 여부를 확인한다.
+
+> "기존 #N '...' 과 비슷합니다. 그래도 새로 만들까요?"
+
+응답 대기. "아니 / 취소" 이면 스킬 종료.
+
+### Step 2: Explore agent 로 코드베이스 조사
+
+Agent 도구로 `subagent_type=Explore` 를 호출한다. 조사 범위:
+
+- 현재 구현 상태 (구현됨 / 미구현 / 부분 구현)
+- 관련 파일 경로
+- 영향 도메인 / layer
+- 기존 구현과의 잠재적 충돌
+
+### Step 3: 이슈 계획 미리보기 + 사용자 확인
+
+조사 결과로 라벨을 결정한다:
+
+- `type:feat` — 새 기능
+- `type:fix` — 버그 수정
+- `type:chore` — 코드 정리 / 인프라 / 문서
+
+**`next` 와 milestone 은 상호배타다** — `next` = "아직 어느 사이클/테마에도 안 넣은 backlog 후보", milestone = "특정 사이클/테마에 하기로 확정". 둘을 동시에 달지 않는다.
+- 사용자가 이슈를 **곧장 milestone(테마/사이클)에 넣겠다고 명시**했거나 아래 미리보기에서 milestone 을 지정한 경우 → milestone 만 부여하고 `next` 는 **붙이지 않는다**.
+- milestone 지정이 없으면(기본) → `next` 를 자동 부여한다 (새 이슈 = backlog 후보). 사용자가 명시하면 `next` 도 제외 가능(보류 상태 — milestone·next 둘 다 없이 생성).
+
+다음 형식으로 미리보기를 제시하고 응답을 대기한다:
+
+```markdown
+## 이슈 생성 계획
+
+**제목**: <평이한 한국어 제목>
+**라벨**: type:feat, next  ← milestone 미지정 시 / milestone 지정 시: type:feat (next 없음)
+**Milestone**: (없음 — next 후보로 등록)  ← milestone 지정 시 해당 제목 표시
+**관련 파일**: src/foo/bar.ts, src/foo/baz.ts
+
+---
+**Body**:
+
+## 설명
+<배경 / 의도 / 무엇을 / 왜>
+
+## 작업
+- [ ] ...
+- [ ] ...
+
+## 관련 파일
+- src/foo/bar.ts
+- src/foo/baz.ts
+
+---
+
+이대로 진행할까요? (수정 사항이 있으면 알려주세요)
+```
+
+- "응 / ok / 진행" → Step 4
+- 수정 요청 → 반영 후 다시 확인
+- "아니 / 취소" → 스킬 종료
+
+### Step 4: `gh issue create` 실행
+
+HEREDOC 으로 body 를 전달해 줄바꿈을 보존한다:
+
+milestone 유무에 따라 분기한다:
+
+**milestone 미지정 (기본 — next 부여):**
+
+```bash
+BODY=$(cat <<'EOF'
+## 설명
+...
+
+## 작업
+- [ ] ...
+
+## 관련 파일
+- ...
+EOF
+) && gh issue create \
+  --title "<제목>" \
+  --body "$BODY" \
+  --label "type:feat,next"
+```
+
+**milestone 지정 시 (next 없음):**
+
+```bash
+BODY=$(cat <<'EOF'
+## 설명
+...
+
+## 작업
+- [ ] ...
+
+## 관련 파일
+- ...
+EOF
+) && gh issue create \
+  --title "<제목>" \
+  --body "$BODY" \
+  --label "type:feat" \
+  --milestone "<milestone-title>"
+```
+
+- 본문에 인라인 백틱(`)이 있으면 변수 경유 필수. 외부 double-quote 가 백틱을 명령 치환으로 재해석할 위험을 회피한다.
+- 라벨은 쉼표 구분, 공백 없음
+- 이슈 번호와 URL 보존
+
+### Step 5: 최종 리포트
+
+```markdown
+## 이슈 생성 완료
+
+**Issue**: https://github.com/<owner>/<repo>/issues/<N>
+**제목**: <제목>
+**라벨**: <실제 부여된 라벨 (예: type:feat, next 또는 type:feat)>
+**Milestone**: <지정한 경우 milestone 제목, 미지정이면 이 줄 생략>
+
+**다음 단계**:
+- 사이클에 포함시킬 때: `gh issue edit <N> --remove-label next --milestone v0.2.0`
+- 외부 의존으로 차단 상태일 때: `gh issue edit <N> --add-label blocked`
+- 작업 시작 시: 브랜치 `feat/issue-<N>-<짧은-설명>`, PR 본문에 `Closes #<N>` 포함
+```
+
+## 예외 처리
+
+- **중복 이슈 발견**: 링크 제시 + 진행 여부 확인
+- **`gh auth` 미인증**: `gh auth login` 안내
+- **Explore agent 가 관련 코드 없음 응답**: "관련 구현이 아직 없는 새 영역 같습니다. 그래도 이슈 만들까요?" 안내. 관련 파일 섹션은 비워둠.
+
+## 컨벤션
+
+- 라벨 목록과 3축 정책(type / 상태 / area)의 권위는 [harness-rules.md](../../harness-rules.md) § 운영 정책. 여기에 목록을 복제하지 않는다. `/create-issue` 흐름에서 직접 다루는 건 `type:*`(종류) 와 `next`(backlog 후보) 이며, 그 외 라벨이 필요해 보이면 사용자에게 확인한다.
+- 이슈 제목에 `[P2]`, `[v0.2.0]` 같은 prefix 를 붙이지 않는다. 평이한 제목.
+- backlog SSOT 는 GitHub Issues — 인라인 목록을 별도 문서로 관리하지 않는다.
+
+## 참조
+
+- 라벨 목록: `gh label list`
+- 이슈 목록 (backlog 권위 = GitHub Issues): `gh issue list --label next`
