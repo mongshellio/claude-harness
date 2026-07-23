@@ -94,7 +94,7 @@ fd ".*\.md" "$H/agents/" "$H/skills/" -x head -n 10   # frontmatter 스캔
 **단일 파일 검증 (frontmatter ↔ 본문 부합)**
 
 - `frontmatter-body-mismatch` — frontmatter (name/description) 의 선언과 본문 (트리거/동작/예외/워크플로우) 가 불일치. 예: description 에 "X 시 자동 호출" 인데 본문에 자동 호출 절차 없음.
-- `frontmatter-schema-violation` — agent·skill 공통으로 (name/description) 필수 필드 누락. `role`/`kind`/`non_goals` 3필드 스키마(`required-docs.md`)를 가진 하네스 권위 문서(`README.md`·`required-docs.md`)는 그 3필드 정합도 대상(`doc-reviewer` 가 하네스 루트를 제외하면서 생기는 커버리지 공백을 여기서 메움).
+- `frontmatter-schema-violation` — agent·skill 공통으로 (name/description) 필수 필드 누락. `role`/`kind`/`non_goals` 3필드 frontmatter 를 가진 **모든** 하네스 권위 문서(스키마 권위: `required-docs.md`)는 그 3필드 정합도 대상(`doc-reviewer` 가 하네스 루트를 제외하면서 생기는 커버리지 공백을 여기서 메움).
 
 **cross-cutting 검증 (하네스 파일 풀)**
 

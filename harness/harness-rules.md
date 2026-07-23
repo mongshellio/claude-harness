@@ -60,7 +60,7 @@ non_goals:
     - 검증 프롬프트 골자: "다음은 architect 권고문이다. 이미 채택된 권장 옵션에 대해서만 critical/suggestion/nice 로: (1) architect 가 기각하지 않았으나 더 단순한 대안 (2) 본문에 안 드러난 트레이드오프·운영부담 (3) SSOT/Out-of-Scope 충돌 (4) Decision 후보 누락. 동의 코멘트·요약 금지. 1인 운영 단순성을 판단축으로. 한국어 평이체."
   - findings 는 critical/suggestion/nice 로 분류 (파일:line 불필요 — 설계 단계라 권고문 항목 인용, 한국어 평이체). 메인 세션이 사용자에게 제시 → 결정 반영.
 - 브랜치 네이밍 컨벤션:
-  - **git 브랜치명 = worktree 통일 키** (정의·환경 매핑 권위: `docs/architecture.md`). 키는 **첫 push 전에** 최종 이름으로 확정하고, **push 후 리네임 금지** (preview 인프라 리소스 고아화 — 스택별 상세: `references/infra-gotchas.md`). 한 worktree = 한 브랜치.
+  - **git 브랜치명 = worktree 통일 키** (정의·환경 매핑 권위: `docs/architecture.md`). 키는 **첫 push 전에** 최종 이름으로 확정하고, **push 후 리네임 금지** (preview 인프라 리소스 고아화 — 스택별 상세: `.claude/references/infra-gotchas.md`). 한 worktree = 한 브랜치.
   - 단발 이슈: `(feat|fix|chore)/issue-N-<slug>` (예: `chore/issue-56-branch-naming`). 연관 이슈 동시 처리 시 `(feat|fix|chore)/issue-N-M-<slug>` 허용.
   - 마일스톤 사이클 (`/plan` 단위): `cycle/<slug>` (예: `cycle/order-panel-revamp`). **버전 숫자를 브랜치명에 박지 않는다** — 슬러그가 유일성을 담당하고, 버전 번호는 `/release` 시점에 계산된다 (버전 SSOT = git tag max). type-free prefix — 사이클은 feat/fix/chore 가 섞이는 묶음이므로 type 미부착. 사이클 시작 시 **첫 push 전** 리네임.
   - `<slug>` 규칙: 작업/마일스톤 주제를 **kebab-case** (소문자 + 하이픈) 로. 통일 키 안정성을 위해 일관 표기 — `cycle/order-panel-revamp` (O), `cycle/OrderPanel` (X).
