@@ -25,7 +25,6 @@ tools: Read, Grep, Glob, Bash
 
 - `docs/architecture-decisions.md` — 활성 Decision 집합 파악. `## 상태 인덱스` 섹션이 그 목록이라 대개 거기서 시작하면 충분하다.
 - `docs/architecture.md` — 인증·외부 의존성 정책 위반 점검 시 (Tech Stack / Data Flow / Auth / Infrastructure)
-- `docs/code-standards.md` — 리팩토링·코드 작성 기준 (유지보수성 판정의 기준 문서)
 
 **Decision 본문 읽기**: 상태 인덱스로 후보를 좁힌 뒤, 변경 파일 도메인과 겹치는 active Decision 과 diff·영역별 `CLAUDE.md` 가 직접 인용한(`Decision N` / `Decision #N`) Decision 의 본문을 읽는다. 판정에 필요하면 더 읽어도 된다 — 습관적인 전체 덤프만 피하면 된다.
 
