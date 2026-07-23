@@ -2,7 +2,7 @@
 role: "Claude Code 하네스 흐름도 + 에이전트 cross-cutting 공유 정의(라우팅 / 공통 분류 등급 / 검증 책임 / 본문 작성 가이드)의 단일 권위"
 kind: operational
 non_goals:
-  - "운영 정책 / 철학 / SSOT 원칙 (harness-rules.md)"
+  - "운영 정책 — 각 소유 스킬(브랜치·머지=pr, 라벨=create-issue) 과 소비 프로젝트 루트 CLAUDE.md 상시 코어가 분담"
   - "개별 skill·agent 의 상세 동작 (각 SKILL.md / agent frontmatter 가 권위)"
   - "권위 문서 목록 / frontmatter 스키마 (required-docs.md)"
 ---
@@ -11,7 +11,7 @@ non_goals:
 
 이 문서는 두 가지 역할을 합니다: **(1) 하네스 흐름도** 와 **(2) 여러 reviewer·skill 이 공유하는 cross-cutting 정의의 단일 권위** (Reviewer 라우팅 / 공통 분류 등급 / 검증 명령 실행 책임 / 본문 작성 가이드). 개별 skill·agent 의 상세 동작은 각 SKILL.md / agent frontmatter 가 권위입니다.
 
-이 하네스는 공유 SSOT 저장소에서 각 프로젝트 `.claude/` 로 배포(vendoring)됩니다. **배포본은 생성물이므로 직접 수정하지 않습니다** — SSOT 에서 고친 뒤 다시 배포하세요. 배포 도구와 그 방식을 택한 이유는 SSOT 저장소의 README 가 권위입니다.
+이 하네스는 **플러그인(mongshell-dev)** 으로 배포되는 것이 기본이고, 예외적으로 일부 프로젝트에는 파일 복사(vendored)로 배포됩니다. vendored 배포본은 생성물이므로 직접 수정하지 않습니다 — SSOT 저장소에서 고친 뒤 재배포합니다. 배포 채널·이유는 SSOT 저장소 README 가 권위입니다.
 
 ---
 
@@ -89,7 +89,7 @@ flowchart LR
 | 사용자/외부 독자 향 문서 (`**/*.md` 중 하네스 루트 밖 — 예: `docs/**/*.md`, 루트 + 영역별 `CLAUDE.md`, 기타 `README.md`) | `doc-reviewer` | 활성 |
 | 하네스 파일 (하네스 루트 아래 `**/*.md` — agents / skills / README / required-docs) | `harness-reviewer` | 활성 |
 
-> \* `security-reviewer` 의 `/plan` 루프 제외 등 호출시점 정책은 `.claude/skills/qa/SKILL.md` "/plan 자동 iteration 과의 책임 경계" 표 참조.
+> \* `security-reviewer` 의 `/plan` 루프 제외 등 호출시점 정책은 qa 스킬의 "/plan 자동 iteration 과의 책임 경계" 표 참조.
 
 > **코드 도메인 정의**: "프로젝트 toolchain 입력 코드" 의 구체 확장자는 영역별 `CLAUDE.md` 또는 `docs/development.md` 의 lint/typecheck/test 명령 대상이 권위. toolchain 외 파일 (이미지/lock/data 등) 의 처리는 아래 "도메인 외 입력 정책" 참조.
 
@@ -173,7 +173,7 @@ skill / agent 가 참조하는 프로젝트 권위 문서(`docs/**`, 영역별 `
 
 ## 본문 작성 가이드 — 진입 금지 도메인 키워드
 
-이 하네스(`.claude/`) 본문에 들어가면 안 되는 도메인 키워드. 새 agent/skill 작성 또는 기존 파일 수정 시 참조.
+이 하네스 본문에 들어가면 안 되는 도메인 키워드. 새 agent/skill 작성 또는 기존 파일 수정 시 참조.
 
 - **영역별 경로** — 예: `docs/`, `src/lib/`, `src/components/`, `src/app/api/` 등 프로젝트 종속 경로. 대신 "영역별 `CLAUDE.md`" / "프로젝트 디렉토리" 등으로 일반화.
 - **빌드/검증 명령어** — 프로젝트 스택 종속 명령 (`pnpm test:run`, `pnpm typecheck`, `pnpm lint`, `pnpm db:push`, `pnpm build` 등). 대신 "테스트 명령", "typecheck 명령", "lint 명령" 등 역할 표현 + "구체 명령은 `docs/development.md` 또는 영역별 `CLAUDE.md` 권위" 위임.
@@ -181,6 +181,9 @@ skill / agent 가 참조하는 프로젝트 권위 문서(`docs/**`, 영역별 `
 - **도메인 / 비즈니스 용어** — 프로젝트 이름, 핵심 도메인명, 표준 에러 클래스명 등. 대신 "이 프로젝트" / "프로젝트의 표준 에러 패턴" 등.
 - **정책 수치** — 라벨 목록, 구체 버전 패턴 등 프로젝트마다 달라지는 값.
 - **하네스 카운트 표현** — "N종" / "N가지" 같이 하네스 안의 검증 단계 / 서브에이전트 / 도구 등을 정량 카운트하는 표현. 하네스 변경마다 본문 동기화 부담이 누적되고, 의미가 다른 카운트끼리 숫자 충돌이 발생함. 대신 항목 나열 / 역할 표현 ("다중 검증" / "bash 명령 + Agent 호출" 등). 외부 표준·스펙이 정한 고정 항목 수는 예외. 과거 Decision 스냅샷(`docs/harness-decisions.md` / `docs/architecture-decisions.md` 본문) 은 본 규칙의 적용 대상이 아니다.
+
+- **프로젝트 고유 이슈·Decision 번호의 권위 인용** — 다른 프로젝트에서 존재하지 않는 참조가 된다. 형식 예시와 상위 저장소(도구 자체) 이슈 인용은 예외.
+- **required-docs 계약 밖의 docs/ 의존성** — 새 문서 의존을 추가하려면 `references/required-docs.md` 에 contract 를 함께 추가한다.
 
 **판정 휴리스틱**: 임의의 다른 프로젝트에 그대로 들어가도 의미가 동일한가? → No 면 금지.
 
@@ -197,14 +200,16 @@ skill / agent 가 참조하는 프로젝트 권위 문서(`docs/**`, 영역별 `
 
 > **목록이 짧은 이유**: 예전에는 "권위 문서는 최소한만 read", "출력 형식을 조여 토큰 절감", "작은 작업엔 작은 모델" 같은 항목이 함께 있었습니다. 컨텍스트가 좁고 모델이 비싸던 시절의 최적화인데, 지금은 **덜 읽어서 놓치는 비용** 과 **형식에 갇혀 판단을 못 적는 비용** 이 더 큽니다. 절약이 목적이 되면 검증 품질이 먼저 깎입니다.
 >
-> 절차를 CLI 로 정형화하는 것 자체는 여전히 옳지만, 그건 비용이 아니라 **결정성** 의 문제라 [harness-rules.md](./harness-rules.md) § "스크립트 우선 원칙" 이 권위입니다.
+> 절차를 CLI 로 정형화하는 것 자체는 여전히 옳지만, 그건 비용이 아니라 **결정성** 의 문제입니다 — 결정적 판정(개수 비교·존재 확인·형식 검사)은 모델 추론이 아니라 스크립트로 처리한다 (스크립트 우선 원칙, 소비 프로젝트 상시 코어에 포함).
 
 ---
 
 ## 하네스 철학
 
-→ [harness-rules.md](./harness-rules.md) § "철학" 참조.
+이 하네스는 **1인 운영 (solo operation) 을 기본 전제**로 합니다 — 단순성 우선(1인이 유지관리할 수 있는 복잡도 안에서 결정), 팀 협업 본질 패턴은 디스카운트, 운영 부담 최소화. skill/agent 설계·수정 시 항상 이 축으로 판단합니다.
+
+**SSOT 원칙**: 다른 권위 문서의 정보는 링크/쿼리로 참조만 — 본문에 복제하지 않습니다. 각 skill 은 SKILL.md, agent 는 frontmatter 가 자기 파일의 단일 권위이며 별도 목록·카탈로그 파일을 만들지 않습니다.
 
 ## 권위 문서 frontmatter 표준
 
-권위 문서 (`.claude/**/*.md`, `docs/**/*.md` 중 frontmatter 있는 것) 의 frontmatter 스키마 (`role` / `kind` / `non_goals`) 는 [required-docs.md](./required-docs.md#frontmatter-스키마) 가 SSOT.
+권위 문서 (하네스 `**/*.md`, `docs/**/*.md` 중 frontmatter 있는 것) 의 frontmatter 스키마 (`role` / `kind` / `non_goals`) 는 [references/required-docs.md](./references/required-docs.md#frontmatter-스키마) 가 SSOT.

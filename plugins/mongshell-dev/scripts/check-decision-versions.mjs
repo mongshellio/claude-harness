@@ -16,24 +16,22 @@
  *
  * STALE 또는 PENDING 가 하나라도 있으면 exit 1 (채울 게 있다는 신호).
  *
- * 배경: `/release` 는 파일을 수정하지 않으므로(Decision 14) 도입 버전 placeholder 가
+ * 배경: `/release` 는 파일을 수정하지 않으므로(버전 SSOT = git tag max) 도입 버전 placeholder 가
  *   릴리스마다 안 채워지고 누적되는 드리프트가 있었다. 결정론 판정은 스크립트로 처리한다
  *   (하네스 스크립트 우선 원칙). 이 스크립트는 "채울 목록" 만 제시하고, 실제 수정은 운영자가 doc 으로 반영.
  *
- * 사용: `node .claude/scripts/check-decision-versions.mjs` 또는 `pnpm check:decisions`. `/release` Step 2 가 호출.
+ * 사용: `node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs"` (qa/release 스킬이 프로젝트 루트 cwd 에서 호출). `/release` Step 2 가 호출.
  * cwd 무관 — 스크립트 위치 기준으로 repo 루트를 해석하고 git 도 그 루트에서 실행한다.
  */
 import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-// repo 루트 = 스크립트가 놓인 위치가 속한 git 트리의 루트.
-// 위치 기준(-C scriptDir)이라 cwd 와 무관(다른 cwd 실행 시 false-green 방지)하고,
-// 배포 깊이(scripts/ vs .claude/scripts/)와도 무관하다. worktree 에서는 그 worktree 루트.
-const ROOT = execFileSync("git", ["-C", dirname(fileURLToPath(import.meta.url)), "rev-parse", "--show-toplevel"], {
-	encoding: "utf8",
-}).trim();
+// repo 루트 = 실행 cwd 가 속한 git 트리의 루트. 호출 계약: qa/release 스킬이
+// 프로젝트 루트 cwd 에서 실행한다. 스크립트 위치 기준을 쓰지 않는 이유 — 플러그인
+// 배포 시 스크립트는 플러그인 캐시(비-git 디렉토리)에 놓이기 때문. worktree 에서는
+// 그 worktree 루트가 나온다 (자기 트리 검증).
+const ROOT = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 const FILES = ["docs/architecture-decisions.md", "docs/harness-decisions.md"];
 
 /** git 명령 실행 — 항상 repo 루트에서. 실패(non-zero)는 빈 문자열로 흡수. */

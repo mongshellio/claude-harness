@@ -1,5 +1,5 @@
 ---
-role: "하네스(.claude/) 의 agent/skill 이 권위 문서에 가정하는 frontmatter 스키마와 본문 구조 contract 의 단일 권위 — 권위 문서 본문 작성 디테일은 다루지 않음."
+role: "하네스의 agent/skill 이 권위 문서에 가정하는 frontmatter 스키마와 본문 구조 contract 의 단일 권위 — 권위 문서 본문 작성 디테일은 다루지 않음."
 kind: reference
 non_goals:
   - "권위 문서 본문 작성 디테일 (각 권위 문서가 직접 정의)"
@@ -146,12 +146,6 @@ non_goals:
 - `Out of Scope` — 의도적 미구현 명시. 신기능 제안 거절 근거.
 - `Design Principles` — 설계 원칙. architect 의 의사결정 원칙 + `docs/design.md` §1 의 derive 출발점.
 
-### 참조하는 agent/skill
-
-| 위치 | 동작 |
-|------|------|
-| `architect` agent | 정합성 1차 검토 기준 read (Core Value Proposition / In Scope / Out of Scope / Design Principles 전체) |
-
 ---
 
 ## `docs/code-standards.md`
@@ -163,13 +157,6 @@ non_goals:
 ### 하네스가 요구하는 본문 구조
 
 - **기준 항목 목록** — 코드 작성/리팩토링 시 우선할 기준 (정직한 이름 / CQS / 국소성 / 단일 추상화 레벨 / 지표 비목적 / 동작 보존 / 리뷰 가능한 diff). developer 의 구현 기준 + code-reviewer 의 유지보수성 점검 기준.
-
-### 참조하는 agent/skill
-
-| 위치 | 동작 |
-|------|------|
-| `developer` agent | 구현 시 기준 준수 (루트 `CLAUDE.md` @-include 로 자동 로드) |
-| `code-reviewer` agent | 유지보수성 점검 — 위반 시 P1 보고 |
 
 ---
 
@@ -185,18 +172,8 @@ non_goals:
 - **typecheck 명령**.
 - **lint 명령**.
 - **DB 마이그레이션 명령** (architect 가 안전성 검토 시 참조).
+- **로컬 실행** (앱 기동 진입점 — /pr 이 로컬 확인 안내 시 참조).
 - **테스트 co-located 컨벤션** (`*.ts` 옆 `*.test.ts` 등 — code-reviewer 가 누락 점검).
-
-### 참조하는 agent/skill
-
-| 위치 | 동작 |
-|------|------|
-| `developer` agent | 테스트 / typecheck / 로컬 개발 명령 권위 read |
-| `code-reviewer` agent | 동일 + co-located 컨벤션 점검 |
-| `/qa` SKILL | typecheck / 테스트 명령 권위 read |
-| `/release` SKILL | typecheck / 테스트 명령 권위 read |
-| `/review-comments` SKILL | typecheck / 테스트 명령 권위 read |
-| `architect` agent | DB 마이그레이션 명령 안전성 검토 시 read |
 
 ### 영역별 `CLAUDE.md` 와의 관계
 
@@ -217,12 +194,6 @@ non_goals:
 - **`새 primitive 추가 신호`** 항목 — UI 결정 시 "기존 primitive 조합 우선" 판정의 권위.
 - **`§X` 로 참조 가능한 섹션화** — 부분 참조 / 갱신 추적 용도.
 
-### 참조하는 agent/skill
-
-| 위치 | 동작 |
-|------|------|
-| `developer` agent | UI 변경 시 참조 — 컴포넌트 영역 `CLAUDE.md` 자동 로드 경유 reach |
-
 ---
 
 ## `docs/architecture.md`
@@ -239,14 +210,6 @@ non_goals:
 - **Auth** — 인증 방식 (단일 게이트 / OAuth / 멀티유저 등) + 인증 경계.
 - **Infrastructure** — 호스팅·외부 SaaS·DB 연결 사양.
 
-### 참조하는 agent/skill
-
-| 위치 | 동작 |
-|------|------|
-| `architect` agent | 시스템 아키텍처 정합성 검토 시 read |
-| `code-reviewer` agent | 인증·외부 의존성 정책 위반 점검 시 read |
-| `developer` agent | Tech Stack / 구현 위치 검토 시 read |
-
 ### 변경 권위
 
 - 시스템 사양 변경 시 수동 갱신. `/release` 등 자동 갱신 대상 아님.
@@ -260,19 +223,9 @@ frontmatter 없음 — doc-reviewer 일반 문서 skip / `adr-content-mismatch` 
 ### 하네스가 요구하는 본문 구조
 
 - **`## Decision N` 헤더 형식** — `N` 은 레거시 순번(정수, 예: `76`) 또는 신규 이슈 식별자(`#` 접두, 예: `#992`; 한 이슈 다결정 시 `#992-1`). 형식 정규식 `#?\d+(-\d+)?`. doc-reviewer / harness-reviewer 의 `adr-content-mismatch` 검증 정규식이 이 형식을 가정.
-- **Decision 헤더 직후 `**도입**: vX.Y.Z (#이슈)` 라인** — 결정의 도입 시점 SSOT이자 `.claude/scripts/check-decision-versions.mjs` 가 버전 판정에 읽는 기계 앵커(`(#이슈)`). `/release` Step 2 가 새 Decision 추가 시 이 라인 존재 여부 확인 (누락 시 warn). GitHub Release 의 별도 인덱스 의존을 만들지 않는다.
+- **Decision 헤더 직후 `**도입**: vX.Y.Z (#이슈)` 라인** — 결정의 도입 시점 SSOT이자 `${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs` 가 버전 판정에 읽는 기계 앵커(`(#이슈)`). `/release` Step 2 가 새 Decision 추가 시 이 라인 존재 여부 확인 (누락 시 warn). GitHub Release 의 별도 인덱스 의존을 만들지 않는다.
 - 각 Decision 본문에 **결정·이유·결과** 세 요소 — `adr-content-mismatch` 검증 시 인용 맥락과 이 셋 중 어느 하나의 직접 연결 여부를 대조 확인.
-- **`## 상태 인덱스` 표** — 모든 Decision 헤더와 1:1 대응(각 식별자가 한 행). `.claude/scripts/check-decisions-index.mjs` 가 헤더 집합 ↔ 인덱스 집합을 대조해 MISSING(헤더에만)/DANGLING(인덱스에만)/중복을 검출한다 (개수 비교 아님 — `/qa` 가 decisions 파일 변경 시 실행).
-
-### 참조하는 agent/skill
-
-| 위치 | 동작 |
-|------|------|
-| `architect` agent | Decision 후보 식별 시 read |
-| `developer` agent | 결정 배경 read |
-| `code-reviewer` agent | 위반 점검 |
-| `doc-reviewer` agent | `adr-content-mismatch` 검증 시 **대조 참조용** 조건부 read (본문 정합 검증 주체 아님) |
-| `harness-reviewer` agent | `adr-content-mismatch` 검증 시 **대조 참조용** 조건부 read (본문 정합 검증 주체 아님) |
+- **`## 상태 인덱스` 표** — 모든 Decision 헤더와 1:1 대응(각 식별자가 한 행). `${CLAUDE_PLUGIN_ROOT}/scripts/check-decisions-index.mjs` 가 헤더 집합 ↔ 인덱스 집합을 대조해 MISSING(헤더에만)/DANGLING(인덱스에만)/중복을 검출한다 (개수 비교 아님 — `/qa` 가 decisions 파일 변경 시 실행).
 
 ---
 
@@ -290,7 +243,7 @@ frontmatter 없음 — doc-reviewer 일반 문서로 skip.
 ### 하네스가 요구하는 본문 구조
 
 - `architecture-decisions.md` 에서 번복·대체 확정된 Decision 원문을 무수정 보존. `## Decision N` 헤더 형식(레거시 순번 또는 `#이슈` 식별자) 유지.
-- **`## 목차` 표** — 보관된 Decision 의 네비게이션 인덱스(TOC). 상태·supersede 권위가 아니라(그건 live 파일 `상태 인덱스`) 네비게이션용. `.claude/scripts/check-decisions-index.mjs` 가 목차 ↔ 헤더 집합 대조로 검증.
+- **`## 목차` 표** — 보관된 Decision 의 네비게이션 인덱스(TOC). 상태·supersede 권위가 아니라(그건 live 파일 `상태 인덱스`) 네비게이션용. `${CLAUDE_PLUGIN_ROOT}/scripts/check-decisions-index.mjs` 가 목차 ↔ 헤더 집합 대조로 검증.
 
 ### 참조하는 agent/skill
 

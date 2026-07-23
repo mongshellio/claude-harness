@@ -19,21 +19,19 @@
  *
  * 하나라도 불일치면 exit 1.
  *
- * 사용: `node .claude/scripts/check-decisions-index.mjs` 또는 `pnpm check:decisions-index`. `/qa` 가 decisions
+ * 사용: `node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decisions-index.mjs"` (qa/release 스킬이 프로젝트 루트 cwd 에서 호출). `/qa` 가 decisions
  *   파일 변경 시 호출. cwd 무관 — 스크립트 위치 기준으로 repo 루트를 해석한다
  *   (sibling check-decision-versions.mjs / check-journal-monotonic.mjs 와 동일 패턴).
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-// repo 루트 = 스크립트가 놓인 위치가 속한 git 트리의 루트.
-// 위치 기준(-C scriptDir)이라 cwd 와 무관(다른 cwd 실행 시 false-green 방지)하고,
-// 배포 깊이(scripts/ vs .claude/scripts/)와도 무관하다. worktree 에서는 그 worktree 루트.
-const ROOT = execFileSync("git", ["-C", dirname(fileURLToPath(import.meta.url)), "rev-parse", "--show-toplevel"], {
-	encoding: "utf8",
-}).trim();
+// repo 루트 = 실행 cwd 가 속한 git 트리의 루트. 호출 계약: qa/release 스킬이
+// 프로젝트 루트 cwd 에서 실행한다. 스크립트 위치 기준을 쓰지 않는 이유 — 플러그인
+// 배포 시 스크립트는 플러그인 캐시(비-git 디렉토리)에 놓이기 때문. worktree 에서는
+// 그 worktree 루트가 나온다 (자기 트리 검증).
+const ROOT = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 
 // 파일별로 "인덱스 표를 여는 섹션 헤더"가 다르다: live 로그는 `## 상태 인덱스`(active/superseded 권위),
 // archive 는 `## 목차`(네비게이션 TOC — 상태 권위 아님).

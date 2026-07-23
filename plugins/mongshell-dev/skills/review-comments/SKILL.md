@@ -41,11 +41,12 @@ gh pr list --head $(git branch --show-current) --json number,url --jq '.[0]'
 
 ### Step 2: 코멘트 fetch
 
-두 종류 모두 수집한다:
+세 표면을 모두 수집한다 (이슈 코멘트 / 인라인 코멘트 / 리뷰 제출 총평):
 
 ```bash
 gh pr view <N> --json comments --jq '.comments'
 gh api repos/{owner}/{repo}/pulls/<N>/comments
+gh api repos/{owner}/{repo}/pulls/<N>/reviews --jq '[.[] | select(.body != null and .body != "")]'
 ```
 
 - 본인 작성 코멘트도 포함한다 — self-review history 기록용. 분류 대상에 포함. 본인 코멘트도 0개면 "처리할 코멘트가 없습니다. 종료할까요?" 사용자 확인.
@@ -53,16 +54,7 @@ gh api repos/{owner}/{repo}/pulls/<N>/comments
 
 ### Step 3: 분류 + 사용자 confirm
 
-휴리스틱 분류:
-
-| 키워드 | 분류 |
-|--------|------|
-| must / 버그 / blocker / critical / 수정 필요 / P0 | P0 |
-| should / 권장 / 고치는 게 좋겠 / P1 / suggestion | P1 |
-| nit / nice / minor / 선택 / ideally / P2 | P2 |
-| (매치 없음) | LLM(메인 세션)이 본문으로 판단 |
-
-분류 키워드 매치 0건 + LLM 판단 모호한 경우 → 사용자에게 분류를 직접 요청한다.
+코멘트 본문을 공통 분류 등급(하네스 README — P0/P1/P2 의미 정의) 기준으로 분류한다. 판단이 모호하면 사용자에게 분류를 직접 요청한다.
 
 미리보기를 P0 / P1 / P2 섹션별로 출력한 뒤 사용자 confirm 을 대기한다.
 
@@ -82,26 +74,13 @@ gh api repos/{owner}/{repo}/pulls/<N>/comments
 BODY=$(cat <<'EOF'
 fix: PR #<N> 리뷰 코멘트 반영
 EOF
-B=$(git branch --show-current)
 ) && git add <변경 파일> && git commit -m "$BODY"
-git push origin "$B"
+git push origin HEAD
 ```
 
 - type prefix 는 변경 성격에 따라 `fix` / `chore` / `feat` 로 결정한다.
-- push 는 명시 refspec(`origin "$B"`) — upstream(`@{u}`) 가정 금지.
+- push 는 `origin HEAD` — 현재 브랜치를 동명 remote 브랜치로 push (upstream(`@{u}`) 가정 금지, 변수 캡처 불필요).
 - trailer(`Co-Authored-By` / "🤖 Generated with Claude Code") 포함 여부의 권위 = 루트 `CLAUDE.md` (/pr 동일). 명시가 없으면 미포함.
-
-### (옵션) PR 응답 코멘트
-
-- 기본 동작: 응답 코멘트 작성하지 않는다 (self-review 맥락에서 의미 약함).
-- 사용자가 "응답 남겨" 요청 시에만:
-
-```bash
-BODY=$(cat <<'EOF'
-리뷰 코멘트 반영 완료 — commit <SHA> 참고.
-EOF
-) && gh pr comment <N> --body "$BODY"
-```
 
 ### Step 6: 최종 리포트 (해당 없는 섹션은 생략)
 
@@ -117,7 +96,6 @@ EOF
 - 검증 (developer 결과):
   - 타입 체크: ✅/❌
   - 테스트: ✅/❌
-- 응답 코멘트: 작성함/생략
 
 다음 단계:
 - 추가 검증 필요 시 /qa 호출
@@ -134,14 +112,13 @@ EOF
 | `origin/$B` 부재 | stop + 안내 (PR 브랜치 전제 깨짐) |
 | PR 자동 감지 실패 + 인자 없음 | `gh pr list --state open` 결과 + 사용자에게 번호 묻기 |
 | PR 코멘트 0개 | 사용자 확인 후 결정 |
-| 분류 키워드 매치 0건 + LLM 판단 모호 | 사용자에게 분류 직접 요청 |
+| 분류 판단 모호 | 사용자에게 분류 직접 요청 |
 | developer P0 처리 실패 | stop + 출력 전달 |
-| gh pr comment 실패 | warn + 리포트에 명시 |
 
 ## 컨벤션
 
 - 본문에 인라인 백틱(`)이 있으면 BODY 변수 경유 필수. /pr / /create-issue 와 동일 패턴으로 명령 치환 재해석을 회피한다.
-- 분류 어휘는 [.claude/README.md](../../README.md) 의 "공통 분류 등급" 단일 권위 참조.
+- 분류 어휘는 하네스 README 의 "공통 분류 등급" 단일 권위 참조.
 - 커밋 메시지 톤은 한국어 conventional commits — CLAUDE.md 컨벤션 참조.
 - trailer 정책 권위 = 루트 `CLAUDE.md` (명시 없으면 미포함).
 

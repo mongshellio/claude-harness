@@ -1,7 +1,7 @@
 ---
 name: pr
 description: >-
-  GitHub PR 생성의 단일 진입점.
+  GitHub PR 생성의 단일 진입점 + 브랜치 규약(네이밍·리네임 불변식)의 단일 권위.
   브랜치명(1순위) 또는 커밋 메시지(보조)에서 Closes 이슈 번호 검출, gh pr create 실행, gh pr view 검증.
   트리거 — "pr", "pull request", "PR 만들자".
 ---
@@ -15,6 +15,15 @@ GitHub PR 생성의 단일 진입점. 브랜치명(1순위) 또는 커밋 메시
 - 명시 호출: "/pr", "PR 만들자", "pull request"
 - ⚠️ 자동 호출 X — 사용자가 작업 완료 시점에 명시 호출.
 - `/qa --branch` 통과 marker 게이트를 Step 0 에서 기계 확인한다. 명시 skip 응답으로 우회 가능 (soft gate).
+
+## 브랜치 규약 (본 스킬이 단일 권위)
+
+- **git 브랜치명 = worktree 통일 키**. 키는 **첫 push 전에** 최종 이름으로 확정하고, **push 후 리네임 금지** (preview 인프라 리소스 고아화 — 스택별 상세: `${CLAUDE_PLUGIN_ROOT}/references/infra-gotchas.md`). 한 worktree = 한 브랜치.
+- 단발 이슈: `(feat|fix|chore|refactor)/issue-N-<slug>`. 연관 이슈 동시 처리 시 `-N-M-` 형태 허용.
+- 마일스톤 사이클 (`/plan` 단위): `cycle/<slug>` — 버전 숫자를 브랜치명에 박지 않는다 (버전 SSOT = git tag max, `/release` 시점 계산). type-free prefix.
+- `<slug>` 는 kebab-case (소문자 + 하이픈).
+
+> 머지 규약(`--squash` 만, `--delete-branch` 금지)은 /pr 미호출 세션의 머지 시점에도 필요해 **루트 CLAUDE.md 상시 코어**가 권위다.
 
 ## 동작
 
@@ -33,7 +42,7 @@ GitHub PR 생성의 단일 진입점. 브랜치명(1순위) 또는 커밋 메시
     명시 'skip' 응답 시에만 계속 진행. 그 외 응답은 stop.
   - 비고: `/tmp` 는 재부팅 시 휘발되어 파일이 사라진다. 이때 안전한 방향(재검증 권고)으로 폴백된다.
 - 현재 브랜치 = `main` → "feature 브랜치에서 호출해 주세요"
-- 브랜치명이 `^claude/` (auto-worktree 패턴) → "feature 브랜치명으로 rename 후 재호출 (예: `git branch -m chore/issue-N-<slug>`, 사이클이면 `cycle/<slug>`)". 리네임 → push 순서 강제 = 통일 키(git 브랜치명)를 push 전 확정해 preview 인프라 리소스 고아화 방지 (harness-rules 리네임 불변식).
+- 브랜치명이 `^claude/` (auto-worktree 패턴) → "feature 브랜치명으로 rename 후 재호출 (예: `git branch -m chore/issue-N-<slug>`, 사이클이면 `cycle/<slug>`)". 리네임 → push 순서 강제 = 통일 키(git 브랜치명)를 push 전 확정해 preview 인프라 리소스 고아화 방지 (아래 "브랜치 규약" — 리네임 불변식).
 - `git status` 결과 dirty → status 출력 + "commit 먼저"
 - `gh auth status` 미인증 → "`gh auth login` 후 재호출"
 - `gh pr list --head <branch>` 결과 있음 → 기존 PR URL 안내
