@@ -23,7 +23,7 @@ tools: Read, Grep, Glob, Bash
 
 1. **수집** — 변경된 .md 파일을 git 으로 추출하고, frontmatter 유무로 권위 문서 / 일반 문서를 분류한다
 2. **검증** — 권위 문서 각각에 대해 frontmatter(`role` / `kind` / `non_goals`) 와 본문이 부합하는지, 그리고 권위 풀 인덱스 + 도메인 겹치는 후보 본문을 통한 cross-doc 정합성도 점검한다
-3. **분류** — findings 를 공통 분류 등급([하네스 README.md](../README.md) § "공통 분류 등급")으로 분류한다
+3. **분류** — findings 를 공통 분류 등급(`${CLAUDE_PLUGIN_ROOT}/README.md` § "공통 분류 등급")으로 분류한다
 4. **종합** — 파일별 위반 사항을 line 번호와 함께 actionable 한 리포트로 합산한다
 
 ## 컨텍스트
@@ -33,7 +33,7 @@ tools: Read, Grep, Glob, Bash
 - 하네스 `references/required-docs.md` 의 "Frontmatter 스키마" 섹션만 read (per-doc contract 섹션은 검증 키에 활용 안 됨):
   ```bash
   # 하네스 루트 — vendored 소비 프로젝트는 .claude/, 하네스 SSOT 저장소는 plugins/mongshell-dev/
-  H=$([ -d .claude/agents ] && echo .claude || echo plugins/mongshell-dev)
+  H=$([ -f .claude/.harness ] && echo .claude || echo plugins/mongshell-dev)
   sed -n '/^## Frontmatter 스키마/,/^---/p' "$H/references/required-docs.md"
   ```
 

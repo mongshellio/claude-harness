@@ -5,6 +5,7 @@ description: >-
   프로젝트의 backlog 권위(GitHub Issues)에 등록하는 단일 진입점.
   조사 정책: docs/issue-conventions.md 존재 시 그 문서를 따르고,
   부재 시 Explore agent 코드베이스 조사가 기본.
+  트리거 — "이슈 만들어/등록해줘", "backlog 등록", "create-issue".
 ---
 
 # /create-issue
@@ -44,11 +45,12 @@ Agent 도구로 `subagent_type=Explore` 를 호출한다. 조사 범위:
 
 ### Step 3: 이슈 계획 미리보기 + 사용자 확인
 
-조사 결과로 라벨을 결정한다:
+조사 결과로 라벨을 결정한다 (type 축 4종 중 택일):
 
 - `type:feat` — 새 기능
 - `type:fix` — 버그 수정
 - `type:chore` — 코드 정리 / 인프라 / 문서
+- `type:refactor` — 동작 보존 구조 변경 (리팩토링)
 
 **`next` 와 milestone 은 상호배타다** — `next` = "아직 어느 사이클/테마에도 안 넣은 backlog 후보", milestone = "특정 사이클/테마에 하기로 확정". 둘을 동시에 달지 않는다.
 - 사용자가 이슈를 **곧장 milestone(테마/사이클)에 넣겠다고 명시**했거나 아래 미리보기에서 milestone 을 지정한 경우 → milestone 만 부여하고 `next` 는 **붙이지 않는다**.

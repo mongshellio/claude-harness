@@ -17,7 +17,7 @@ tools: Read, Grep, Glob, Bash
 **하네스 루트(`$H`)** 는 실행 위치에 따라 다르다 — vendored 소비 프로젝트에서는 `.claude/`, 하네스 SSOT 저장소에서는 `plugins/mongshell-dev/` 다. 하네스 수정이 SSOT 에서 일어나므로 거기서 검증이 안 걸리면 사실상 어디서도 안 걸린다. 아래 명령들은 이 한 줄로 루트를 확정한 뒤 사용한다:
 
 ```bash
-H=$([ -d .claude/agents ] && echo .claude || echo plugins/mongshell-dev)
+H=$([ -f .claude/.harness ] && echo .claude || echo plugins/mongshell-dev)
 ```
 
 ## 역할
@@ -25,7 +25,7 @@ H=$([ -d .claude/agents ] && echo .claude || echo plugins/mongshell-dev)
 1. **수집** — 변경된 하네스 `.md` 파일을 git 으로 추출하고, agent / skill / README / 기타로 분류한다
 2. **컨텍스트 구축** — 컨텍스트 섹션의 필수 read 문서를 적재하고, 하네스 파일 풀에서 대조 후보를 좁힌다
 3. **검증** — syntactic 정합성 + 단일 파일 정합성 + cross-cutting R&R 정합성 + 낭비 패턴을 다중 키로 점검한다
-4. **분류** — findings 를 공통 분류 등급([하네스 README.md](../README.md) § "공통 분류 등급")으로 분류한다
+4. **분류** — findings 를 공통 분류 등급(`${CLAUDE_PLUGIN_ROOT}/README.md` § "공통 분류 등급")으로 분류한다
 5. **리포트** — 파일별 위반 사항을 line 번호와 함께 actionable 한 리포트로 합산한다
 
 ## 컨텍스트
@@ -33,7 +33,6 @@ H=$([ -d .claude/agents ] && echo .claude || echo plugins/mongshell-dev)
 **필수 read 문서** (harness-reviewer 가 호출되면 매번 의식. 루트 `CLAUDE.md` 는 자동 로드 — main-orchestration-violation 키 적용 시 자동 로드 본문 참조):
 
 - 하네스 파일 풀(`$H/agents/**`, `$H/skills/*/SKILL.md`, `$H/README.md`·`$H/references/required-docs.md`) — 인덱스로 대조 후보를 좁혀 컨텍스트를 구성 (상세: 워크플로우 Step 3).
-- `.claude/settings.json` (존재 시) — hook 등록과 skill/agent 명세 간 정합성(hook-registration-mismatch 키) 검증용.
 - Decision 파일 — `adr-content-mismatch` 검증 시 조건부 read (워크플로우 Step 4 참조).
 
 > frontmatter 스키마 권위: agent(name/description)·skill(name/description) 스키마는 Claude Code harness 자체 정의 (외부) — 본 프로젝트 내부 정의 없음. 권위 문서(role/kind/non_goals) 스키마 정의의 SSOT 는 하네스 `references/required-docs.md` 의 "Frontmatter 스키마" 섹션이며, 검증은 도메인별 분담(하네스 루트 밖의 `docs/` 등 = doc-reviewer, 하네스 권위 문서 = harness-reviewer 의 `frontmatter-schema-violation` 키).
@@ -102,7 +101,6 @@ fd ".*\.md" "$H/agents/" "$H/skills/" -x head -n 10   # frontmatter 스캔
 - `agent-rnr-overlap` — agent A 와 agent B 의 책임이 분리되지 않음. 예: developer 가 리뷰까지, code-reviewer 가 수정까지.
 - `dispatch-mismatch` — skill 의 본문이 "agent X 에게 위임" 이라 적었는데 agent X 의 description/본문에는 그 호출 출처가 명시 안 됨, 또는 그 반대. skill ↔ agent 의 호출 책임 분담 불일치.
 - `main-orchestration-violation` — skill/agent 명세가 루트 CLAUDE.md 메인 세션 규칙의 위임 판단 기준(병렬성 / 메인 컨텍스트 격리 / 신선한 독립 리뷰)을 위반 — 즉 그 기준상 위임이 값하는 실질 구현을 메인 세션이 직접 Edit/Write 하도록 명세된 경우. 자명한 변경(한 줄·오타·기계적 텍스트 교정)의 직접 편집은 위반 아님. 위임 판단 기준·'자명한 변경' 경계의 SSOT = 루트 CLAUDE.md 메인 세션 규칙(자동 로드) — 본 키는 그 기준을 집행만 하고 재정의하지 않는다. `/pr` 처럼 의도된 예외는 명시되어 있으면 OK.
-- `hook-registration-mismatch` — `.claude/settings.json` 의 hook 등록(예: PostToolUse, UserPromptSubmit)과 skill/agent 명세에서 가정한 hook 동작이 불일치. 단, settings.json 이 .gitignore 일 수 있으니 존재 시에만 검증.
 - `adr-content-mismatch` — 하네스 `.md` 본문이 특정 Decision (`Decision N` / `Decision #N` / `(Decision N 참조)` / `[Decision N](...)`) 를 인용했지만, `docs/harness-decisions.md` 또는 `docs/architecture-decisions.md` 의 해당 Decision 본문의 결정·이유·결과 중 어느 것과도 직접 연결되지 않는 맥락에서 사용됨. 잘못된 권위 부여. (신규 결정은 이슈번호로 식별 — `Decision #N`.)
 - `exception-clause-accumulation` — 단서 조항이 쌓여 skill·agent 의 입력 도메인 분리와 책임 경계가 흐려지는 경우 (예: "도메인 외에도 X 수행"). 공통 판정 기준은 하네스 `README.md` § "예외 조항 누적 검증".
 
@@ -117,7 +115,7 @@ fd ".*\.md" "$H/agents/" "$H/skills/" -x head -n 10   # frontmatter 스캔
 - 검출 도메인 = 하네스 루트 아래 `**/*.md`
 
 각 위반은 다음 정보 포함:
-- 위반 키 (frontmatter-body-mismatch / frontmatter-schema-violation / skill-rnr-overlap / agent-rnr-overlap / dispatch-mismatch / main-orchestration-violation / hook-registration-mismatch / adr-content-mismatch / exception-clause-accumulation / perf-anti-pattern 중 하나)
+- 위반 키 (frontmatter-body-mismatch / frontmatter-schema-violation / skill-rnr-overlap / agent-rnr-overlap / dispatch-mismatch / main-orchestration-violation / adr-content-mismatch / exception-clause-accumulation / perf-anti-pattern 중 하나)
 - `파일:line` (또는 line range)
 - 짧은 인용 (1~2 문장)
 - 제안 (수정 방향 / 제거 / 통합)
@@ -129,7 +127,7 @@ fd ".*\.md" "$H/agents/" "$H/skills/" -x head -n 10   # frontmatter 스캔
 등급 의미는 하네스 `README.md` "공통 분류 등급" 참조. 본 reviewer 의 위반 키 → 등급 매핑:
 
 - `P0` — frontmatter-schema-violation / frontmatter-body-mismatch 명백한 모순 / skill-rnr-overlap 통째 / agent-rnr-overlap 통째 / dispatch-mismatch 양방향 모순 / main-orchestration-violation 명백 위반 / exception-clause-accumulation 명세 안 cross-domain 침범 예외
-- `P1` — 부분적 frontmatter-body-mismatch / 짧은 R&R 침범 / hook-registration-mismatch / adr-content-mismatch / exception-clause-accumulation 정책 비대칭 단서 / perf-anti-pattern 의 명백한 영향 (자동 로드 문서 read)
+- `P1` — 부분적 frontmatter-body-mismatch / 짧은 R&R 침범 / adr-content-mismatch / exception-clause-accumulation 정책 비대칭 단서 / perf-anti-pattern 의 명백한 영향 (자동 로드 문서 read)
 - `P2` — 톤·표현 보완 / description 길이 최적화 / perf-anti-pattern 의 판단 모호 (agent 호출 정당성)
 
 ### Step 6. 리포트
@@ -172,7 +170,7 @@ fd ".*\.md" "$H/agents/" "$H/skills/" -x head -n 10   # frontmatter 스캔
 - 하네스 파일 풀 frontmatter/description 인덱스 전체 + dispatch/rnr 후보 본문(보수적 recall) 적재 (변경된 하네스 파일만 보지 말 것 — cross-cutting R&R 검증 핵심)
 - 각 위반에 `파일:line` 명시
 - 본문 인용은 짧게 (1~2 문장)
-- 위반 키(frontmatter-body-mismatch / frontmatter-schema-violation / skill-rnr-overlap / agent-rnr-overlap / dispatch-mismatch / main-orchestration-violation / hook-registration-mismatch / adr-content-mismatch / exception-clause-accumulation / perf-anti-pattern)를 각 finding 머리에 `[키]` 형태로 명시
+- 위반 키(frontmatter-body-mismatch / frontmatter-schema-violation / skill-rnr-overlap / agent-rnr-overlap / dispatch-mismatch / main-orchestration-violation / adr-content-mismatch / exception-clause-accumulation / perf-anti-pattern)를 각 finding 머리에 `[키]` 형태로 명시
 
 **금지:**
 - 하네스 파일 직접 수정 (리뷰어이지 편집자가 아님)

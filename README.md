@@ -37,30 +37,9 @@ Mongshell 의 개인용 Claude Code 개발 하네스 SSOT. 단일 원본은 [plu
 | **프로젝트 주입값** | 프로젝트 고유값 | `.claude/browser-scenarios.md`, `.claude/launch.json`, `.claude/settings*.json` |
 | **공유 인프라 스크립트** | 빌드 가드 등 빌드가 부르는 것 | 본체는 프로젝트 `scripts/` 소유 (예: check-journal-monotonic — vercel·pre-push 배선이 봄) |
 
-## 루트 CLAUDE.md 상시 코어 (템플릿 정본)
+## 루트 CLAUDE.md 상시 코어
 
-플러그인은 세션에 **상시 로드되는 컨텍스트를 주입할 수 없습니다** (플러그인 CLAUDE.md 는 로드되지 않음 — 공식 문서). 그래서 하네스가 전제하는 상시 규칙은 각 소비 프로젝트의 **루트 `CLAUDE.md`** 에 삽니다. 아래가 정본 템플릿이며, 프로젝트에 이미 동등 조항이 있으면 중복 추가하지 않습니다.
-
-```markdown
-## 작업 규약 코어 (하네스 상시 규칙)
-
-- **오케스트레이터**: 메인 세션은 탐색·계획·서브에이전트 관리·사용자 소통이 주 역할,
-  실질 구현은 developer, 검토는 reviewer 에이전트에 위임. 위임이 병렬성·컨텍스트 격리·
-  독립 리뷰 중 뭔가를 사면 위임, 자명한 변경(한 줄·오타·기계적 교정)은 직접 편집.
-- **1인 운영 전제**: 단순성 우선, 팀 협업 본질 패턴 디스카운트, 운영 부담 최소화.
-- **스크립트 우선**: 결정적 판정(개수 비교·존재 확인·형식 검사)은 모델 추론이 아니라
-  스크립트/bash 로 처리한다.
-- **디버깅 원칙**: 증상 패치 전에 근본원인 — 데이터 흐름 추적 없는 fix 제안, 검증 없는
-  원인 단정, 동시 다발 변경은 red flag. 같은 증상에 fix 3회 실패 시 아키텍처를 의심한다.
-- **UI 목업 게이트**: UI 변경 인입 시 developer 위임 직전 목업 우선 여부를 판정한다 —
-  트리거는 새 화면·큰 레이아웃 재구성만, 기본값 skip, 게이트락 아님.
-- **머지 규약** (worktree 워크플로우 전제): PR 머지는 `gh pr merge <N> --squash` 만 —
-  `--delete-branch` 금지 (worktree 의 `main` 점유와 충돌; remote 브랜치는 repo 설정
-  `delete_branch_on_merge` 가 자동 삭제).
-- **정책 노브**: 커밋/PR trailer 포함 여부는 이 문서가 권위 (예: `Co-Authored-By` 포함,
-  `🤖 Generated with Claude Code` 미포함). 응답 톤(예: 항상 존댓말)과 커밋 메시지
-  언어(예: 한국어 conventional commits)도 이 문서가 권위.
-```
+정본 = [plugins/mongshell-dev/references/claude-md-core.md](plugins/mongshell-dev/references/claude-md-core.md) — 플러그인 동봉이라 소비 프로젝트 세션이 `${CLAUDE_PLUGIN_ROOT}/references/claude-md-core.md` 로 read 할 수 있고, `harness-core` 마커 비교로 복사본의 낡음을 판정할 수 있습니다. 각 소비 프로젝트 루트 `CLAUDE.md` 에 그 블록을 삽입합니다 (동등 조항이 이미 있으면 중복 추가하지 않음).
 
 ## 이식 가이드
 
@@ -70,6 +49,7 @@ Mongshell 의 개인용 Claude Code 개발 하네스 SSOT. 단일 원본은 [plu
 2. **루트 CLAUDE.md 상시 코어** 삽입 (위 템플릿).
 3. **권위 문서 계약** — 하네스가 프로젝트 `docs/` 에 요구하는 파일·구조는 [plugins/mongshell-dev/references/required-docs.md](plugins/mongshell-dev/references/required-docs.md) 가 단일 권위. 문서가 아직 없으면 해당 단계는 skip 됩니다 (권위 문서 부재 시 공통 계약).
 4. **빌드 명령 확정** — skill 의 `<typecheck-cmd>` 등 placeholder 는 런타임에 프로젝트 `docs/development.md` 에서 해석됩니다. 그 문서에 실제 명령을 적으세요.
+   - `docs/code-standards.md` 를 작성했다면 루트 `CLAUDE.md` 에 `@docs/code-standards.md` 한 줄을 추가하세요 — developer/code-reviewer 가 "자동 로드" 를 전제합니다 (미포함 시 권위 문서 부재 계약으로 skip).
 5. **영역별 `CLAUDE.md`** — 디렉토리 운영 규약을 프로젝트 구조에 맞게 작성.
 6. **browser 검증 시나리오** (UI 프로젝트) — `.claude/browser-scenarios.md` 에 라우트·로그인 절차·점검 목록 작성 (qa 스킬이 참조).
 7. **라벨 3축** — 정의 권위는 create-issue 스킬. 생성 명령:

@@ -123,6 +123,13 @@ cmd_sync() {
 		written=$((written + 1))
 	done
 
+	# vendored 마커 — 하네스 루트 감지($H)의 센티널. 스킬 구성이 바뀌어도 안정.
+	if [ ! -f "$proj/.claude/.harness" ]; then
+		printf '# vendored harness 마커 — sync-harness.sh 가 생성. 삭제하지 마세요 (하네스 루트 감지용).\n' > "$proj/.claude/.harness"
+		info "  갱신  .claude/.harness (vendored 마커)"
+		written=$((written + 1))
+	fi
+
 	info ""
 	if [ "$written" -eq 0 ]; then
 		info "이미 최신입니다 (변경 0건)."
@@ -139,6 +146,8 @@ cmd_check() {
 	proj="$(resolve_target "$1")"
 	tmp="$(mktemp)"
 	trap 'rm -f "$tmp"' RETURN
+
+	[ -f "$proj/.claude/.harness" ] || { info "  없음  .claude/.harness (vendored 마커)"; missing=$((missing + 1)); }
 
 	for rel in $(harness_files); do
 		is_project_owned "$rel" && continue

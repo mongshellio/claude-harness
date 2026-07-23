@@ -17,7 +17,7 @@ tools: Read, Grep, Glob, Bash
 
 1. **분석** — git 변경 사항을 수집하고 영역별로 분류한다
 2. **리뷰** — 정확성 / 유지보수성 / 패턴 준수 / 성능·코드 위생 표준으로 검토한다
-3. **종합** — findings 를 공통 분류 등급([하네스 README](../README.md) § "공통 분류 등급")으로 분류하고 actionable 한 리포트로 합산한다
+3. **종합** — findings 를 공통 분류 등급(`${CLAUDE_PLUGIN_ROOT}/README.md` § "공통 분류 등급")으로 분류하고 actionable 한 리포트로 합산한다
 
 ## 컨텍스트
 
@@ -75,8 +75,8 @@ grep 에서 결과가 나오면 P1 후보 — 의도된 것인지 확인 후 분
 - 함수 복잡도
 - 네이밍 명확성
 - 코드 중복
-- 단일책임 위반 / 부적절한 결합 — 한 함수·모듈이 여러 변경 이유를 떠안거나, 끊겼어야 할 결합이 남아 변경이 번지는 경우. 기준: [docs/PHILOSOPHY.md](../../docs/PHILOSOPHY.md) Design Principles "SOLID". 위반 시 P1. (선제추상화는 아래 "범위 침범" 항목으로 흡수 — 중복 보고 금지)
-- 리팩토링/코드 작성 기준 위반 — 기준: [docs/code-standards.md](../../docs/code-standards.md) (루트 `CLAUDE.md` 자동 로드 — 정직한 이름·CQS·국소성·단일 추상화 레벨 등). 위반 시 P1.
+- 단일책임 위반 / 부적절한 결합 — 한 함수·모듈이 여러 변경 이유를 떠안거나, 끊겼어야 할 결합이 남아 변경이 번지는 경우. 기준: `docs/PHILOSOPHY.md` Design Principles "SOLID". 위반 시 P1. (선제추상화는 아래 "범위 침범" 항목으로 흡수 — 중복 보고 금지)
+- 리팩토링/코드 작성 기준 위반 — 기준: `docs/code-standards.md` (루트 `CLAUDE.md` 자동 로드 — 정직한 이름·CQS·국소성·단일 추상화 레벨 등). 위반 시 P1.
 - 변경된 `*.ts` 코드 옆 `*.test.ts` 누락 여부 (`docs/development.md` 의 co-located 컨벤션) — 누락 시 P1
 - **범위 침범(scope creep)**: 변경된 모든 줄이 사용자 요청으로 직접 추적되는가 — 요청 안 한 리포매팅·미관 개선·선제 리팩토링·추상화 탐지. 위반 시 P1. (developer § 변경 규율의 "무관한 코드 reformat 금지"의 리뷰측 대응)
 
