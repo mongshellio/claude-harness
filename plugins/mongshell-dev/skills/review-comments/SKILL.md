@@ -141,7 +141,7 @@ EOF
 ## 컨벤션
 
 - 본문에 인라인 백틱(`)이 있으면 BODY 변수 경유 필수. /pr / /create-issue 와 동일 패턴으로 명령 치환 재해석을 회피한다.
-- 분류 어휘는 [.claude/README.md](../../README.md) 의 "공통 분류 등급" 단일 권위 참조.
+- 분류 어휘는 하네스 README 의 "공통 분류 등급" 단일 권위 참조.
 - 커밋 메시지 톤은 한국어 conventional commits — CLAUDE.md 컨벤션 참조.
 - trailer 정책 권위 = 루트 `CLAUDE.md` (명시 없으면 미포함).
 

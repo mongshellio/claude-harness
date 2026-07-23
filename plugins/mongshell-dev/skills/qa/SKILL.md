@@ -10,7 +10,7 @@ description: >-
 
 # /qa
 
-작업 마무리 직전 검증 단일 진입점. typecheck / 테스트 / lint / `code-reviewer` / `doc-reviewer` / `harness-reviewer` (.md 변경 시 도메인별) 를 기본 실행하고, `security-reviewer` / build 는 `--branch`(풀 검증) 또는 opt-in(`--security` / `--build`) 시 추가 실행한다. 외부 LLM 리뷰(Gemini CLI / DeepSeek API)는 `--gemini` / `--deepseek` opt-in 시에만 실행 (`--branch` 자동 포함 아님). browser 검증(Preview MCP)은 `--branch` + UI 변경 있을 때만 추가 실행한다 (별도 opt-in 없음). decisions 파일(`docs/architecture-decisions.md` / `docs/harness-decisions.md` / `docs/decisions-archive.md`) 변경 시 `check-decisions-index.mjs` 로 Decision 헤더와 상태 인덱스/목차의 식별자 집합 정합(MISSING/DANGLING/중복)을 검증한다. 결과를 공통 분류 등급([.claude/README.md](../../README.md) § "공통 분류 등급")으로 통일 분류해 리포트한다. .md 파일의 frontmatter 깨짐은 로딩 시점에 자연 검출된다.
+작업 마무리 직전 검증 단일 진입점. typecheck / 테스트 / lint / `code-reviewer` / `doc-reviewer` / `harness-reviewer` (.md 변경 시 도메인별) 를 기본 실행하고, `security-reviewer` / build 는 `--branch`(풀 검증) 또는 opt-in(`--security` / `--build`) 시 추가 실행한다. 외부 LLM 리뷰(Gemini CLI / DeepSeek API)는 `--gemini` / `--deepseek` opt-in 시에만 실행 (`--branch` 자동 포함 아님). browser 검증(Preview MCP)은 `--branch` + UI 변경 있을 때만 추가 실행한다 (별도 opt-in 없음). decisions 파일(`docs/architecture-decisions.md` / `docs/harness-decisions.md` / `docs/decisions-archive.md`) 변경 시 `check-decisions-index.mjs` 로 Decision 헤더와 상태 인덱스/목차의 식별자 집합 정합(MISSING/DANGLING/중복)을 검증한다. 결과를 공통 분류 등급(하네스 README § "공통 분류 등급")으로 통일 분류해 리포트한다. .md 파일의 frontmatter 깨짐은 로딩 시점에 자연 검출된다.
 
 ## 언제 호출하는가
 
@@ -79,8 +79,10 @@ rm -rf "$QA_TMP" && mkdir -p "$QA_TMP"
 # --diff-filter=d : deleted 파일 제외 (reviewer 가 부재 파일 검사 시도 방지)
 QA_TMP="/tmp/qa-$(basename "$(git rev-parse --show-toplevel)")"
 git diff $RANGE --name-only --diff-filter=d -- '*.md' > "$QA_TMP/md-changed.txt" 2>/dev/null || true
-grep -v '^\.claude/' "$QA_TMP/md-changed.txt" > "$QA_TMP/doc-domain.txt" 2>/dev/null || true    # doc-reviewer 도메인
-grep '^\.claude/' "$QA_TMP/md-changed.txt" > "$QA_TMP/harness-domain.txt" 2>/dev/null || true  # harness-reviewer 도메인
+# 하네스 루트 — vendored 소비 프로젝트는 .claude/, 하네스 SSOT 저장소는 plugins/mongshell-dev/ (reviewer 들과 동일 유도식)
+H=$([ -d .claude/agents ] && echo .claude || echo plugins/mongshell-dev)
+grep -v "^$H/" "$QA_TMP/md-changed.txt" > "$QA_TMP/doc-domain.txt" 2>/dev/null || true    # doc-reviewer 도메인
+grep "^$H/" "$QA_TMP/md-changed.txt" > "$QA_TMP/harness-domain.txt" 2>/dev/null || true  # harness-reviewer 도메인
 ```
 
 - **코드 파일 변경 여부**: `git diff $RANGE --name-only | grep -v '\.md$'` 로 `.md` 외 변경 확인. toolchain 외 파일 (이미지/lock/data 등) false positive 는 도메인 외 입력 정책 (`${CLAUDE_PLUGIN_ROOT}/README.md` "Reviewer 라우팅") 으로 흡수.

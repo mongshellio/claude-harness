@@ -19,7 +19,7 @@
  *
  * 하나라도 불일치면 exit 1.
  *
- * 사용: `node .claude/scripts/check-decisions-index.mjs` 또는 `pnpm check:decisions-index`. `/qa` 가 decisions
+ * 사용: `node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decisions-index.mjs"` (qa/release 스킬이 프로젝트 루트 cwd 에서 호출). `/qa` 가 decisions
  *   파일 변경 시 호출. cwd 무관 — 스크립트 위치 기준으로 repo 루트를 해석한다
  *   (sibling check-decision-versions.mjs / check-journal-monotonic.mjs 와 동일 패턴).
  */

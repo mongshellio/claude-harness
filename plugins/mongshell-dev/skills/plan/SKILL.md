@@ -291,6 +291,6 @@ wait
 - 메인 세션 = 오케스트레이터 원칙: [CLAUDE.md](../../../CLAUDE.md)
 - 스킬 경계 전체: 위 표 + 각 SKILL.md
 - 이슈 조회: `gh issue list --milestone vX.Y.0 --state open`
-- 라벨 정책: [CLAUDE.md](../../../CLAUDE.md)
+- 라벨 정책: create-issue 스킬 (라벨 3축 단일 권위)
 - 검증 분류 기준: [qa/SKILL.md](../qa/SKILL.md)
 - 릴리스 흐름: [release/SKILL.md](../release/SKILL.md)

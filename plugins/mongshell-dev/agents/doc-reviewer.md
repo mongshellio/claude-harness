@@ -32,7 +32,7 @@ tools: Read, Grep, Glob, Bash
 
 - 하네스 `references/required-docs.md` 의 "Frontmatter 스키마" 섹션만 read (per-doc contract 섹션은 검증 키에 활용 안 됨):
   ```bash
-  # 하네스 루트 — 소비 프로젝트는 .claude/, 하네스 SSOT 저장소는 harness/
+  # 하네스 루트 — vendored 소비 프로젝트는 .claude/, 하네스 SSOT 저장소는 plugins/mongshell-dev/
   H=$([ -d .claude/agents ] && echo .claude || echo plugins/mongshell-dev)
   sed -n '/^## Frontmatter 스키마/,/^---/p' "$H/references/required-docs.md"
   ```

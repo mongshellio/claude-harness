@@ -54,8 +54,12 @@ Mongshell 의 개인용 Claude Code 개발 하네스 SSOT. 단일 원본은 [plu
   원인 단정, 동시 다발 변경은 red flag. 같은 증상에 fix 3회 실패 시 아키텍처를 의심한다.
 - **UI 목업 게이트**: UI 변경 인입 시 developer 위임 직전 목업 우선 여부를 판정한다 —
   트리거는 새 화면·큰 레이아웃 재구성만, 기본값 skip, 게이트락 아님.
+- **머지 규약** (worktree 워크플로우 전제): PR 머지는 `gh pr merge <N> --squash` 만 —
+  `--delete-branch` 금지 (worktree 의 `main` 점유와 충돌; remote 브랜치는 repo 설정
+  `delete_branch_on_merge` 가 자동 삭제).
 - **정책 노브**: 커밋/PR trailer 포함 여부는 이 문서가 권위 (예: `Co-Authored-By` 포함,
-  `🤖 Generated with Claude Code` 미포함).
+  `🤖 Generated with Claude Code` 미포함). 응답 톤(예: 항상 존댓말)과 커밋 메시지
+  언어(예: 한국어 conventional commits)도 이 문서가 권위.
 ```
 
 ## 이식 가이드

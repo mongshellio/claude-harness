@@ -16,11 +16,11 @@
  *
  * STALE 또는 PENDING 가 하나라도 있으면 exit 1 (채울 게 있다는 신호).
  *
- * 배경: `/release` 는 파일을 수정하지 않으므로(Decision 14) 도입 버전 placeholder 가
+ * 배경: `/release` 는 파일을 수정하지 않으므로(버전 SSOT = git tag max) 도입 버전 placeholder 가
  *   릴리스마다 안 채워지고 누적되는 드리프트가 있었다. 결정론 판정은 스크립트로 처리한다
  *   (하네스 스크립트 우선 원칙). 이 스크립트는 "채울 목록" 만 제시하고, 실제 수정은 운영자가 doc 으로 반영.
  *
- * 사용: `node .claude/scripts/check-decision-versions.mjs` 또는 `pnpm check:decisions`. `/release` Step 2 가 호출.
+ * 사용: `node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs"` (qa/release 스킬이 프로젝트 루트 cwd 에서 호출). `/release` Step 2 가 호출.
  * cwd 무관 — 스크립트 위치 기준으로 repo 루트를 해석하고 git 도 그 루트에서 실행한다.
  */
 import { execFileSync, execSync } from "node:child_process";
