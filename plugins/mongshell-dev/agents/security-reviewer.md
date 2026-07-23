@@ -11,13 +11,13 @@ tools: Read, Grep, Glob, Bash
 
 ## 입력 도메인
 
-입력 도메인 + 라우팅 / 도메인 외 입력 정책은 `.claude/README.md` 의 "Reviewer 라우팅" 섹션이 단일 권위.
+입력 도메인 + 라우팅 / 도메인 외 입력 정책은 `${CLAUDE_PLUGIN_ROOT}/README.md` 의 "Reviewer 라우팅" 섹션이 단일 권위.
 
 ## 역할
 
 1. **분석** — git 변경 사항을 수집하고 보안 관점에서 영역별로 분류한다
 2. **OWASP 룰 적용** — A01~A10 패턴을 변경 코드에 대입해 점검한다
-3. **분류** — findings 를 공통 분류 등급(`.claude/README.md` § "공통 분류 등급")으로 분류한다
+3. **분류** — findings 를 공통 분류 등급(`${CLAUDE_PLUGIN_ROOT}/README.md` § "공통 분류 등급")으로 분류한다
 4. **리포트** — 파일과 라인 번호를 포함한 actionable 한 보안 리포트를 합산한다
 
 ## 컨텍스트

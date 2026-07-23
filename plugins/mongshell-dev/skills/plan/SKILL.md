@@ -137,11 +137,11 @@ gh issue list --milestone vX.Y.0 --state open --json number,title,body,labels
 
 **4b-1: 검증 명령 실행 (2층 검증 모델 — 조건부 skip 가능)**
 
-> 2층 검증 모델 원칙은 `.claude/README.md` "검증 명령 실행 책임" 섹션이 권위. Plan 고유 조건부 skip 규칙은 아래에 유지.
+> 2층 검증 모델 원칙은 `${CLAUDE_PLUGIN_ROOT}/README.md` "검증 명령 실행 책임" 섹션이 권위. Plan 고유 조건부 skip 규칙은 아래에 유지.
 
 **skip 판정 규칙** (단일 문장): 병렬 위임이거나 공유파일(둘 이상의 도메인 에이전트가 참조하는 공통 모듈 — Entity 권위 모듈 / DB schema / 공통 lib·hooks / 전역 상태·UI 공통 util 등)이 변경됐으면 4b-1 **필수 실행**; 단일 developer + 공유파일 미변경이면 4b-1 **skip 가능** (developer REPORT 의 exit-code 신뢰).
 
-4b-1 **필수 실행** 시: 메인 세션이 bash로 검증 명령을 직접 실행한다(`.claude/README.md` "검증 명령 실행 책임" 참조). 구체 명령은 프로젝트의 `docs/development.md` 또는 영역별 CLAUDE.md 가 권위.
+4b-1 **필수 실행** 시: 메인 세션이 bash로 검증 명령을 직접 실행한다(`${CLAUDE_PLUGIN_ROOT}/README.md` "검증 명령 실행 책임" 참조). 구체 명령은 프로젝트의 `docs/development.md` 또는 영역별 CLAUDE.md 가 권위.
 
 ```bash
 # 구체 명령은 프로젝트의 docs/development.md 또는 영역별 CLAUDE.md 가 권위
@@ -157,7 +157,7 @@ wait
 
 **4b-2: 라우팅 매칭 reviewer 호출**
 
-메인 세션이 변경 파일을 `.claude/README.md` Reviewer 라우팅 표로 매칭한 reviewer(들)를 호출한다. 도메인 범위 및 도메인 분기·병렬 호출 방식은 README 라우팅 표가 권위. 단, `/qa` 단독 호출 대상 reviewer 는 본 매칭에서 제외 — 현재 `security-reviewer` (`.claude/skills/qa/SKILL.md` "/plan 자동 iteration 과의 책임 경계" 참조).
+메인 세션이 변경 파일을 `${CLAUDE_PLUGIN_ROOT}/README.md` Reviewer 라우팅 표로 매칭한 reviewer(들)를 호출한다. 도메인 범위 및 도메인 분기·병렬 호출 방식은 README 라우팅 표가 권위. 단, `/qa` 단독 호출 대상 reviewer 는 본 매칭에서 제외 — 현재 `security-reviewer` (qa 스킬의 "/plan 자동 iteration 과의 책임 경계" 참조).
 
 - **4b-1 실행 시**: bash 와 같은 응답 내 동시 호출(진짜 병렬) — reviewer 는 bash 완료를 기다리지 않고 즉시 실행된다.
 - **4b-1 skip 시**: reviewer 단독 호출.

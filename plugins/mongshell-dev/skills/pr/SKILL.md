@@ -33,7 +33,16 @@ GitHub PR 생성의 단일 진입점. 브랜치명(1순위) 또는 커밋 메시
     명시 'skip' 응답 시에만 계속 진행. 그 외 응답은 stop.
   - 비고: `/tmp` 는 재부팅 시 휘발되어 파일이 사라진다. 이때 안전한 방향(재검증 권고)으로 폴백된다.
 - 현재 브랜치 = `main` → "feature 브랜치에서 호출해 주세요"
-- 브랜치명이 `^claude/` (auto-worktree 패턴) → "feature 브랜치명으로 rename 후 재호출 (예: `git branch -m chore/issue-N-<slug>`, 사이클이면 `cycle/<slug>`)". 리네임 → push 순서 강제 = 통일 키(git 브랜치명)를 push 전 확정해 preview 인프라 리소스 고아화 방지 (harness-rules 리네임 불변식).
+- 브랜치명이 `^claude/` (auto-worktree 패턴) → "feature 브랜치명으로 rename 후 재호출 (예: `git branch -m chore/issue-N-<slug>`, 사이클이면 `cycle/<slug>`)". 리네임 → push 순서 강제 = 통일 키(git 브랜치명)를 push 전 확정해 preview 인프라 리소스 고아화 방지 (아래 "브랜치 규약" — 리네임 불변식).
+
+**브랜치 규약** (본 스킬이 단일 권위):
+
+- **git 브랜치명 = worktree 통일 키**. 키는 **첫 push 전에** 최종 이름으로 확정하고, **push 후 리네임 금지** (preview 인프라 리소스 고아화 — 스택별 상세: `${CLAUDE_PLUGIN_ROOT}/references/infra-gotchas.md`). 한 worktree = 한 브랜치.
+- 단발 이슈: `(feat|fix|chore)/issue-N-<slug>`. 연관 이슈 동시 처리 시 `(feat|fix|chore)/issue-N-M-<slug>` 허용.
+- 마일스톤 사이클 (`/plan` 단위): `cycle/<slug>` — 버전 숫자를 브랜치명에 박지 않는다 (버전 SSOT = git tag max, `/release` 시점 계산). type-free prefix.
+- `<slug>` 는 kebab-case (소문자 + 하이픈).
+
+**머지 규약** (worktree 워크플로우 전제): PR 머지는 `gh pr merge <N> --squash` 만 — `--delete-branch` **금지** (worktree 의 `main` 점유와 충돌 `fatal: 'main' is already used by worktree`; remote 브랜치는 repo 설정 `delete_branch_on_merge` 가 자동 삭제).
 - `git status` 결과 dirty → status 출력 + "commit 먼저"
 - `gh auth status` 미인증 → "`gh auth login` 후 재호출"
 - `gh pr list --head <branch>` 결과 있음 → 기존 PR URL 안내

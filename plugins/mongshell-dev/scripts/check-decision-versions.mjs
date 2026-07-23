@@ -25,15 +25,13 @@
  */
 import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-// repo 루트 = 스크립트가 놓인 위치가 속한 git 트리의 루트.
-// 위치 기준(-C scriptDir)이라 cwd 와 무관(다른 cwd 실행 시 false-green 방지)하고,
-// 배포 깊이(scripts/ vs .claude/scripts/)와도 무관하다. worktree 에서는 그 worktree 루트.
-const ROOT = execFileSync("git", ["-C", dirname(fileURLToPath(import.meta.url)), "rev-parse", "--show-toplevel"], {
-	encoding: "utf8",
-}).trim();
+// repo 루트 = 실행 cwd 가 속한 git 트리의 루트. 호출 계약: qa/release 스킬이
+// 프로젝트 루트 cwd 에서 실행한다. 스크립트 위치 기준을 쓰지 않는 이유 — 플러그인
+// 배포 시 스크립트는 플러그인 캐시(비-git 디렉토리)에 놓이기 때문. worktree 에서는
+// 그 worktree 루트가 나온다 (자기 트리 검증).
+const ROOT = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 const FILES = ["docs/architecture-decisions.md", "docs/harness-decisions.md"];
 
 /** git 명령 실행 — 항상 repo 루트에서. 실패(non-zero)는 빈 문자열로 흡수. */

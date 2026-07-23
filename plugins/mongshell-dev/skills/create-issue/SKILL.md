@@ -160,7 +160,11 @@ EOF
 
 ## 컨벤션
 
-- 라벨 목록과 3축 정책(type / 상태 / area)의 권위는 [harness-rules.md](../../harness-rules.md) § 운영 정책. 여기에 목록을 복제하지 않는다. `/create-issue` 흐름에서 직접 다루는 건 `type:*`(종류) 와 `next`(backlog 후보) 이며, 그 외 라벨이 필요해 보이면 사용자에게 확인한다.
+- **라벨 3축 정의** (본 스킬이 단일 권위):
+  - **type 축** (변경 종류): `type:feat` / `type:fix` / `type:chore` / `type:refactor`
+  - **상태 축**: `next` / `blocked`
+  - **area 축**: `area:meta` = 비-코드 작업 (하네스 + `docs/` 문서). **미부착 = 제품 코드** (기본). 혼합 작업은 **핵심 산출물 기준** 판단.
+  - `/create-issue` 흐름에서 직접 다루는 건 `type:*` 와 `next` 이며, 그 외 라벨이 필요해 보이면 사용자에게 확인한다.
 - 이슈 제목에 `[P2]`, `[v0.2.0]` 같은 prefix 를 붙이지 않는다. 평이한 제목.
 - backlog SSOT 는 GitHub Issues — 인라인 목록을 별도 문서로 관리하지 않는다.
 

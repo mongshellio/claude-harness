@@ -1,0 +1,19 @@
+{
+	"name": "mongshell",
+	"owner": {
+		"name": "Mongshell"
+	},
+	"description": "Mongshell 개인 Claude Code 마켓플레이스 — 개발 하네스 플러그인.",
+	"metadata": {
+		"pluginRoot": "./plugins"
+	},
+	"plugins": [
+		{
+			"name": "mongshell-dev",
+			"source": "./plugins/mongshell-dev",
+			"description": "개발 하네스 — SDLC 스킬 6종(create-issue/plan/qa/pr/review-comments/release), 에이전트 6종(architect/developer/code·doc·harness·security-reviewer), decisions 검증 스크립트, 인프라 함정 카탈로그. 소비 프로젝트의 docs/ 계약(required-docs 참조)과 루트 CLAUDE.md 정책 노브에 위임하는 프로젝트 중립 설계.",
+			"category": "workflow",
+			"tags": ["harness", "sdlc", "korean"]
+		}
+	]
+}

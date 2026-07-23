@@ -11,13 +11,13 @@ tools: Read, Grep, Glob, Bash
 
 ## 입력 도메인
 
-입력 도메인 + 라우팅 / 도메인 외 입력 정책은 `.claude/README.md` 의 "Reviewer 라우팅" 섹션이 단일 권위.
+입력 도메인 + 라우팅 / 도메인 외 입력 정책은 `${CLAUDE_PLUGIN_ROOT}/README.md` 의 "Reviewer 라우팅" 섹션이 단일 권위.
 
 ## 역할
 
 1. **분석** — git 변경 사항을 수집하고 영역별로 분류한다
 2. **리뷰** — 정확성 / 유지보수성 / 패턴 준수 / 성능·코드 위생 표준으로 검토한다
-3. **종합** — findings 를 공통 분류 등급([.claude/README.md](../README.md) § "공통 분류 등급")으로 분류하고 actionable 한 리포트로 합산한다
+3. **종합** — findings 를 공통 분류 등급([하네스 README](../README.md) § "공통 분류 등급")으로 분류하고 actionable 한 리포트로 합산한다
 
 ## 컨텍스트
 
@@ -64,7 +64,7 @@ grep 에서 결과가 나오면 P1 후보 — 의도된 것인지 확인 후 분
 
 ### 3. 코드 리뷰
 
-> **검증 명령(typecheck/test/lint/build) 실행은 caller 책임** (`.claude/README.md` "검증 명령 실행 책임" 참조). 이 에이전트는 caller가 프롬프트로 전달한 실행 결과를 리뷰 컨텍스트로 활용하거나, 전달이 없으면 순수 정적 리뷰만 수행한다. **직접(사용자) 호출 시** 검증 결과가 없으므로 필요하면 사용자가 별도 실행하며, 종합 검증·리포트가 필요하면 `/qa` 호출을 권장한다.
+> **검증 명령(typecheck/test/lint/build) 실행은 caller 책임** (`${CLAUDE_PLUGIN_ROOT}/README.md` "검증 명령 실행 책임" 참조). 이 에이전트는 caller가 프롬프트로 전달한 실행 결과를 리뷰 컨텍스트로 활용하거나, 전달이 없으면 순수 정적 리뷰만 수행한다. **직접(사용자) 호출 시** 검증 결과가 없으므로 필요하면 사용자가 별도 실행하며, 종합 검증·리포트가 필요하면 `/qa` 호출을 권장한다.
 
 **정확성:**
 - 로직 오류, 엣지 케이스
@@ -90,9 +90,9 @@ grep 에서 결과가 나오면 P1 후보 — 의도된 것인지 확인 후 분
 - `.env.example` 동기화 — 코드가 새 `process.env.X` 를 참조하는데 `.env.example` 에 없으면 P0 (다른 환경에서 깨짐) — 환경 설정 동기화 표준 (보안 분류 아님)
 - 표준 에러 클래스 사용 (throw 를 그냥 통과시키지 않음 — 영역별 `CLAUDE.md` 참조) — 에러 핸들링 표준 (보안 분류 아님)
 
-**보안 검증 전반은 본 reviewer 책임 외** — `security-reviewer` 영역 (입력 검증 helper 호출 여부 포함). `.claude/README.md` Reviewer 라우팅 참조.
+**보안 검증 전반은 본 reviewer 책임 외** — `security-reviewer` 영역 (입력 검증 helper 호출 여부 포함). `${CLAUDE_PLUGIN_ROOT}/README.md` Reviewer 라우팅 참조.
 
-세 가지 리스트로 정리 — 등급 의미는 `.claude/README.md` "공통 분류 등급" 참조.
+세 가지 리스트로 정리 — 등급 의미는 `${CLAUDE_PLUGIN_ROOT}/README.md` "공통 분류 등급" 참조.
 
 ### 4. 리포트
 
@@ -131,7 +131,7 @@ grep 에서 결과가 나오면 P1 후보 — 의도된 것인지 확인 후 분
 - 차단 이슈 vs 선택적 이슈 명확 구분
 - 영역별 `CLAUDE.md` 운영 규약 위반 여부 점검
 - Architecture Decisions 위반 여부 점검 (영역별 `CLAUDE.md` 및 `docs/architecture-decisions.md` 상태 인덱스 + 관련 active Decision 본문 참조)
-- 정적 분석 중 발견한 명백한 lint / 타입 위반은 P0 후보로 보고 (`.claude/README.md` "검증 명령 실행 책임" 참조 — 검증 명령 실행은 caller, 본 에이전트는 정적 분석 결과만 보고)
+- 정적 분석 중 발견한 명백한 lint / 타입 위반은 P0 후보로 보고 (`${CLAUDE_PLUGIN_ROOT}/README.md` "검증 명령 실행 책임" 참조 — 검증 명령 실행은 caller, 본 에이전트는 정적 분석 결과만 보고)
 
 **금지:**
 - 코드 직접 수정 (리뷰어이지 구현자가 아님)

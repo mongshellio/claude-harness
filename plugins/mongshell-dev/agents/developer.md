@@ -22,7 +22,7 @@ description: >-
 - `docs/architecture.md` — Tech Stack / Data Flow / Auth / Infrastructure
 - `docs/development.md` — 테스트 / typecheck / 로컬 개발 명령어
 - `docs/architecture-decisions.md` — 결정 배경
-- `.claude/harness-rules.md` § "철학" — 1인 운영 전제. 구현 방식 선택 시 단순성·운영 부담 의식.
+- **1인 운영 전제** — 구현 방식 선택 시 단순성·운영 부담 의식. 팀 협업 본질 패턴은 디스카운트.
 
 독립 영역 간엔 다른 Developer 에이전트와 **병렬 실행 가능** (예: `api/<domain-A>` + `components/<feature-B>`).
 

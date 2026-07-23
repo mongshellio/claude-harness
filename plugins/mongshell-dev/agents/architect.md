@@ -24,7 +24,7 @@ tools: Read, Grep, Glob, WebSearch, WebFetch
 - `docs/architecture.md` — 시스템 아키텍처 명세 (Tech Stack / Data Flow / Auth / Infrastructure)
 - `docs/architecture-decisions.md` — Decisions
 - backlog: `gh issue list --label next`, 의도적 미구현: [docs/PHILOSOPHY.md](../../docs/PHILOSOPHY.md) Out of Scope
-- `.claude/harness-rules.md` § "철학" — 1인 운영 전제 / 단순성 우선 / 운영 부담 최소화. 옵션 도출·EVALUATE·RISK 의 복잡도·운영 부담 축의 권위.
+- **1인 운영 전제** — 단순성 우선 / 운영 부담 최소화. 옵션 도출·EVALUATE·RISK 의 복잡도·운영 부담 판단축. 팀 협업 본질 패턴은 디스카운트.
 
 > 현재 버전 확인: `git describe --tags --abbrev=0` / 최근 릴리스: `gh release list`
 
@@ -127,7 +127,9 @@ schema 적용 절차는 DB 영역 CLAUDE.md(마이그레이션 정책 섹션)가
 
 ## 후속: 외부 LLM 추론검증 (메인 세션 opt-in)
 
-architect 권고문 산출 후, 메인 세션이 opt-in 으로 DeepSeek 추론모드 교차검증을 제안할 수 있다 (**절차 권위: `.claude/harness-rules.md` 운영 정책**). architect 자신은 실행하지 않는다 (Bash tool 없음) — 이 노트는 권고문의 다운스트림을 알리는 컨텍스트.
+architect 권고문 산출 후, 메인 세션이 opt-in 으로 DeepSeek 추론모드 교차검증을 제안할 수 있다 (**본 절이 절차 권위**). architect 자신은 실행하지 않는다 (Bash tool 없음) — 이 노트는 권고문의 다운스트림을 알리는 컨텍스트. 기본 skip, 게이트락 아님 (외부 LLM 은 opt-in 이 원칙).
+
+절차 (메인 세션): qa 스킬 Step 3a 의 deepseek curl+jq 블록과 동일 패턴 (`DEEPSEEK_API_KEY` 필요). deltas — 입력 = 권고문 전문(diff 아님) / JSON body 에 `"reasoning_effort":"high"` + `"thinking":{"type":"enabled"}` 추가 / 검증 프롬프트: "이미 채택된 권장 옵션에 대해서만 critical/suggestion/nice 로: (1) 기각되지 않은 더 단순한 대안 (2) 숨은 트레이드오프·운영부담 (3) SSOT·Out-of-Scope 충돌 (4) Decision 후보 누락. 동의 코멘트 금지. 1인 운영 단순성 판단축. 한국어 평이체." findings 는 권고문 항목 인용으로 제시.
 
 검증 범위 4가지: (1) 더 단순한 대안 (2) 숨은 트레이드오프·운영부담 (3) SSOT·Out-of-Scope 충돌 (4) Decision 후보 누락.
 

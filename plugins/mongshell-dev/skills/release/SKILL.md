@@ -145,11 +145,11 @@ expand/contract 규율 — 이 변경이 contract 단계가 맞습니까?
 
 GitHub Release 에 사용할 notes 문자열을 메모리상에서 조립한다.
 
-- Changes 는 `gh issue list --milestone <식별자> --state closed --json title,labels` 로 자동 수집하고 `type` 라벨(`type:feat` / `type:fix` / `type:chore`)로 그룹핑한다 (라벨 정책 권위는 [harness-rules.md](../../harness-rules.md)).
+- Changes 는 `gh issue list --milestone <식별자> --state closed --json title,labels` 로 자동 수집하고 `type` 라벨(`type:feat` / `type:fix` / `type:chore`)로 그룹핑한다 (라벨 3축 정의 권위: create-issue 스킬).
 - 마일스톤이 없으면 Changes 절을 생략하고 요약 줄만 포함한다.
 - **도입 버전 정합 검사 (결정론적 — 스크립트)**: 릴리스된 Decision 의 `**도입**: vX.Y.Z` 라인이 채워졌는지 스크립트로 검사한다. 이번 사이클뿐 아니라 **밀린 placeholder 전부**를 정확한 버전과 함께 리포트한다 (하네스 스크립트 우선 원칙 — grep+추론 대신 스크립트).
   ```bash
-  node .claude/scripts/check-decision-versions.mjs
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs"
   ```
   - **STALE**(이미 릴리스됐는데 placeholder — 채웠어야 함) / **PENDING**(이번 릴리스에 나감) 이 있으면 exit 1 + 채울 `파일:line → 버전`을 출력한다. PENDING 은 Step 0 에서 정한 이번 버전을 (release 세션이 직접 편집하지 않고) 채울 값으로 안내한다.
   - warn 후 사용자에게 그 목록을 제시한다. `/release` 는 파일을 수정하지 않으므로 운영자가 **별도 doc 수정**으로 반영한다(이번 릴리스 전/후 doc PR). 이 검사는 **게이트락이 아니다** (경고만 — 목록 제시 후 confirm 없이 진행 가능). 미릴리스 Decision 의 placeholder 는 정상(검출 안 됨).
@@ -300,6 +300,7 @@ gh api -X PATCH repos/{owner}/{repo}/milestones/{N} -f state=closed
 ## 제약
 
 - 메인 세션이 절차를 오케스트레이션한다.
+- git tag · GitHub Release · milestone 은 **본 스킬이 단일 동기화 경로** — 직접 `git tag` / `gh release create` / milestone close 금지.
 - **릴리스 효과: origin/main 태깅 + gh release/milestone close. main 에 push 하지 않는다** — PR squash merge 가 origin/main 을 갱신하는 유일한 경로다.
 - 코드 편집은 이 스킬 범위 외. **파일 편집 없음** — 릴리스가 커밋을 만들지 않는다 (버전 SSOT = git tag max — 파일에 버전을 쓰면 SSOT 가 갈라진다). `package.json version` 은 `0.0.0` 동결, 문서(.md) 편집도 없다.
 - `docs/architecture-decisions.md` / `docs/harness-decisions.md` 는 이 스킬의 수정 대상이 아니다.

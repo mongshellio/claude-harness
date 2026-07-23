@@ -14,10 +14,10 @@ tools: Read, Grep, Glob, Bash
 
 하네스 루트 아래의 모든 `.md`. 라우팅 표 / 도메인 외 입력 정책은 하네스 `README.md` 의 "Reviewer 라우팅" 섹션이 단일 권위.
 
-**하네스 루트(`$H`)** 는 실행 위치에 따라 다르다 — 소비 프로젝트에서는 `.claude/`, 하네스 SSOT 저장소에서는 `harness/` 다. 하네스 수정이 SSOT 에서 일어나므로 거기서 검증이 안 걸리면 사실상 어디서도 안 걸린다. 아래 명령들은 이 한 줄로 루트를 확정한 뒤 사용한다:
+**하네스 루트(`$H`)** 는 실행 위치에 따라 다르다 — vendored 소비 프로젝트에서는 `.claude/`, 하네스 SSOT 저장소에서는 `plugins/mongshell-dev/` 다. 하네스 수정이 SSOT 에서 일어나므로 거기서 검증이 안 걸리면 사실상 어디서도 안 걸린다. 아래 명령들은 이 한 줄로 루트를 확정한 뒤 사용한다:
 
 ```bash
-H=$([ -d .claude/agents ] && echo .claude || echo harness)
+H=$([ -d .claude/agents ] && echo .claude || echo plugins/mongshell-dev)
 ```
 
 ## 역할
@@ -32,11 +32,11 @@ H=$([ -d .claude/agents ] && echo .claude || echo harness)
 
 **필수 read 문서** (harness-reviewer 가 호출되면 매번 의식. 루트 `CLAUDE.md` 는 자동 로드 — main-orchestration-violation 키 적용 시 자동 로드 본문 참조):
 
-- 하네스 파일 풀(`$H/agents/**`, `$H/skills/*/SKILL.md`, `$H/README.md`·`$H/required-docs.md`) — 인덱스로 대조 후보를 좁혀 컨텍스트를 구성 (상세: 워크플로우 Step 3).
+- 하네스 파일 풀(`$H/agents/**`, `$H/skills/*/SKILL.md`, `$H/README.md`·`$H/references/required-docs.md`) — 인덱스로 대조 후보를 좁혀 컨텍스트를 구성 (상세: 워크플로우 Step 3).
 - `.claude/settings.json` (존재 시) — hook 등록과 skill/agent 명세 간 정합성(hook-registration-mismatch 키) 검증용.
 - Decision 파일 — `adr-content-mismatch` 검증 시 조건부 read (워크플로우 Step 4 참조).
 
-> frontmatter 스키마 권위: agent(name/description)·skill(name/description) 스키마는 Claude Code harness 자체 정의 (외부) — 본 프로젝트 내부 정의 없음. 권위 문서(role/kind/non_goals) 스키마 정의의 SSOT 는 하네스 `required-docs.md` 의 "Frontmatter 스키마" 섹션이며, 검증은 도메인별 분담(하네스 루트 밖의 `docs/` 등 = doc-reviewer, 하네스 권위 문서 = harness-reviewer 의 `frontmatter-schema-violation` 키).
+> frontmatter 스키마 권위: agent(name/description)·skill(name/description) 스키마는 Claude Code harness 자체 정의 (외부) — 본 프로젝트 내부 정의 없음. 권위 문서(role/kind/non_goals) 스키마 정의의 SSOT 는 하네스 `references/required-docs.md` 의 "Frontmatter 스키마" 섹션이며, 검증은 도메인별 분담(하네스 루트 밖의 `docs/` 등 = doc-reviewer, 하네스 권위 문서 = harness-reviewer 의 `frontmatter-schema-violation` 키).
 
 ## 워크플로우
 
@@ -65,7 +65,7 @@ git diff $RANGE -- "$H/*.md" "$H/**/*.md"
 - **agent** — `$H/agents/*.md`
 - **skill** — `$H/skills/*/SKILL.md`
 - **README** — `$H/README.md`
-- **기타** — `$H/required-docs.md`, 그 외 `$H/**/*.md`
+- **기타** — `$H/references/required-docs.md`, 그 외 `$H/**/*.md`
 
 ### Step 3. 컨텍스트 구축 (하네스 파일 풀)
 

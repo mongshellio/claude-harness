@@ -1,5 +1,5 @@
 ---
-role: "하네스(.claude/) 의 agent/skill 이 권위 문서에 가정하는 frontmatter 스키마와 본문 구조 contract 의 단일 권위 — 권위 문서 본문 작성 디테일은 다루지 않음."
+role: "하네스의 agent/skill 이 권위 문서에 가정하는 frontmatter 스키마와 본문 구조 contract 의 단일 권위 — 권위 문서 본문 작성 디테일은 다루지 않음."
 kind: reference
 non_goals:
   - "권위 문서 본문 작성 디테일 (각 권위 문서가 직접 정의)"
@@ -260,9 +260,9 @@ frontmatter 없음 — doc-reviewer 일반 문서 skip / `adr-content-mismatch` 
 ### 하네스가 요구하는 본문 구조
 
 - **`## Decision N` 헤더 형식** — `N` 은 레거시 순번(정수, 예: `76`) 또는 신규 이슈 식별자(`#` 접두, 예: `#992`; 한 이슈 다결정 시 `#992-1`). 형식 정규식 `#?\d+(-\d+)?`. doc-reviewer / harness-reviewer 의 `adr-content-mismatch` 검증 정규식이 이 형식을 가정.
-- **Decision 헤더 직후 `**도입**: vX.Y.Z (#이슈)` 라인** — 결정의 도입 시점 SSOT이자 `.claude/scripts/check-decision-versions.mjs` 가 버전 판정에 읽는 기계 앵커(`(#이슈)`). `/release` Step 2 가 새 Decision 추가 시 이 라인 존재 여부 확인 (누락 시 warn). GitHub Release 의 별도 인덱스 의존을 만들지 않는다.
+- **Decision 헤더 직후 `**도입**: vX.Y.Z (#이슈)` 라인** — 결정의 도입 시점 SSOT이자 `${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs` 가 버전 판정에 읽는 기계 앵커(`(#이슈)`). `/release` Step 2 가 새 Decision 추가 시 이 라인 존재 여부 확인 (누락 시 warn). GitHub Release 의 별도 인덱스 의존을 만들지 않는다.
 - 각 Decision 본문에 **결정·이유·결과** 세 요소 — `adr-content-mismatch` 검증 시 인용 맥락과 이 셋 중 어느 하나의 직접 연결 여부를 대조 확인.
-- **`## 상태 인덱스` 표** — 모든 Decision 헤더와 1:1 대응(각 식별자가 한 행). `.claude/scripts/check-decisions-index.mjs` 가 헤더 집합 ↔ 인덱스 집합을 대조해 MISSING(헤더에만)/DANGLING(인덱스에만)/중복을 검출한다 (개수 비교 아님 — `/qa` 가 decisions 파일 변경 시 실행).
+- **`## 상태 인덱스` 표** — 모든 Decision 헤더와 1:1 대응(각 식별자가 한 행). `${CLAUDE_PLUGIN_ROOT}/scripts/check-decisions-index.mjs` 가 헤더 집합 ↔ 인덱스 집합을 대조해 MISSING(헤더에만)/DANGLING(인덱스에만)/중복을 검출한다 (개수 비교 아님 — `/qa` 가 decisions 파일 변경 시 실행).
 
 ### 참조하는 agent/skill
 
@@ -290,7 +290,7 @@ frontmatter 없음 — doc-reviewer 일반 문서로 skip.
 ### 하네스가 요구하는 본문 구조
 
 - `architecture-decisions.md` 에서 번복·대체 확정된 Decision 원문을 무수정 보존. `## Decision N` 헤더 형식(레거시 순번 또는 `#이슈` 식별자) 유지.
-- **`## 목차` 표** — 보관된 Decision 의 네비게이션 인덱스(TOC). 상태·supersede 권위가 아니라(그건 live 파일 `상태 인덱스`) 네비게이션용. `.claude/scripts/check-decisions-index.mjs` 가 목차 ↔ 헤더 집합 대조로 검증.
+- **`## 목차` 표** — 보관된 Decision 의 네비게이션 인덱스(TOC). 상태·supersede 권위가 아니라(그건 live 파일 `상태 인덱스`) 네비게이션용. `${CLAUDE_PLUGIN_ROOT}/scripts/check-decisions-index.mjs` 가 목차 ↔ 헤더 집합 대조로 검증.
 
 ### 참조하는 agent/skill
 
