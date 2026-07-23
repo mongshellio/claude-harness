@@ -55,6 +55,11 @@ render() {
 		printf '\n'
 		banner_for "$rel"
 		tail -n "+$((fm_end + 1))" "$src"
+	elif [ "$(head -c 2 "$src")" = '#!' ]; then
+		# shebang 은 1행에서만 유효 — shebang 뒤에 배너를 넣는다.
+		head -n 1 "$src"
+		banner_for "$rel"
+		tail -n +2 "$src"
 	else
 		banner_for "$rel"
 		printf '\n'
