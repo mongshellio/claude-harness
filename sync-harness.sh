@@ -55,6 +55,11 @@ render() {
 		printf '\n'
 		banner_for "$rel"
 		tail -n "+$((fm_end + 1))" "$src"
+	elif [ "$(head -c 2 "$src")" = '#!' ]; then
+		# shebang 은 1행에서만 유효 — shebang 뒤에 배너를 넣는다.
+		head -n 1 "$src"
+		banner_for "$rel"
+		tail -n +2 "$src"
 	else
 		banner_for "$rel"
 		printf '\n'
@@ -77,7 +82,8 @@ is_project_owned() {
 resolve_target() {
 	local proj="$1"
 	[ -d "$proj" ] || die "프로젝트 경로가 없습니다: $proj"
-	[ -d "$proj/.git" ] || die "git repo 가 아닙니다: $proj"
+	# .git 은 일반 repo 에선 디렉토리, worktree 에선 파일 — git 자체에 판정을 맡긴다.
+	git -C "$proj" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "git repo 가 아닙니다: $proj"
 	(cd "$proj" && pwd)
 }
 
