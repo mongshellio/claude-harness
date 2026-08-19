@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * 결정 문서(docs/architecture-decisions.md · docs/harness-decisions.md)의 `**도입**: vX.Y.Z (#N)` 라인 중 (대시 유무 무관)
- * 버전이 아직 placeholder(concrete `vX.Y.Z` 아님 — 예: `v3.x.x`, "확정")인 것을 검출한다.
+ * 버전이 아직 placeholder(concrete `vX.Y.Z` 아님 — 표준 표기 `미정`, 레거시 `v3.x.x`/`(예정)`/`확정`)인 것을 검출한다.
  *
  * 각 placeholder 의 `(#N)` PR/이슈를 커밋 그래프(first-parent)에서 찾아 판정한다:
- *   - 이미 릴리스 태그에 포함     → STALE   (릴리스됐는데 미확정 — 채웠어야 함). 정확한 버전 리포트.
- *   - origin/main 엔 있으나 미태그 → PENDING (이번 릴리스에 나감 — 태깅할 버전으로 채울 것).
+ *   - 이미 릴리스 태그에 포함     → STALE   (버전이 확정된 상태). 그 태그가 채울 값.
+ *   - origin/main 엔 있으나 미태그 → PENDING (아직 값이 존재하지 않음 — 릴리스 후 확정된다).
  *   - 어디에도 없음(미머지)        → OK      (placeholder 정상, 조용히 통과).
  *
  * `(#N)` 은 squash 커밋 subject 에 박히는 **PR 번호**와 매칭되는데, 도입 라인이 **이슈 번호**를
@@ -14,18 +14,31 @@
  * 의존은 이 폴백 경로에 한정된다. gh 호출 자체가 실패(미설치/미인증/네트워크)하거나, 닫은 PR 은
  * 있는데 first-parent 로그에 없는 비정상이면 조용한 OK 로 넘기지 않고 UNRESOLVED 로 표면화한다.
  *
- * STALE 또는 PENDING 가 하나라도 있으면 exit 1 (채울 게 있다는 신호).
+ * ## 두 가지 모드
  *
- * 배경: `/release` 는 파일을 수정하지 않으므로(버전 SSOT = git tag max) 도입 버전 placeholder 가
- *   릴리스마다 안 채워지고 누적되는 드리프트가 있었다. 결정론 판정은 스크립트로 처리한다
- *   (하네스 스크립트 우선 원칙). 이 스크립트는 "채울 목록" 만 제시하고, 실제 수정은 운영자가 doc 으로 반영.
+ * - **기본(read-only)** — 검사만. STALE 이 하나라도 있으면 exit 1. STALE 은 "write 게이트가 안 돌았다"는
+ *   드리프트 신호다(정상 흐름이면 릴리스 다음 PR 의 `/qa` 가 이미 채웠어야 한다). PENDING 은 값이
+ *   아직 존재하지 않는 정상 상태이므로 정보성 출력만 하고 exit 에 영향을 주지 않는다. `/release` Step 2 가 호출.
+ * - **`--write`** — STALE 을 파일에 in-place 로 채운다. `**도입**:` 와 `(#N)` 사이의 값 세그먼트를
+ *   통째로 교체하므로 placeholder 표기 혼재(`v3.x.x` / `(예정)` / `확정`)가 함께 정규화된다.
+ *   채운 게 있으면 exit 1 (= "커밋에 포함하세요" 신호), 없으면 0. `/qa` Step 2 가 호출.
+ *   UNRESOLVED 와 PENDING 은 쓰지 않는다.
  *
- * 사용: `node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs"` (qa/release 스킬이 프로젝트 루트 cwd 에서 호출). `/release` Step 2 가 호출.
- * cwd 무관 — 스크립트 위치 기준으로 repo 루트를 해석하고 git 도 그 루트에서 실행한다.
+ * 배경: 도입 버전이 확정되는 순간은 **태깅 시점**인데 `/release` 는 파일 편집 금지 불변식을 갖는다
+ *   (버전 SSOT = git tag max). 값을 아는 유일한 행위자가 그 값을 쓸 수 없어 전용 chore PR 이 매번
+ *   강제됐고, 그게 밀리면서 드리프트가 누적됐다. 이 값은 애초에 커밋 그래프에서 파생 가능하므로
+ *   (아래 earliestTag) prose 에 손으로 복제하지 않고 **생성물로 전환**한다 — `/release` 는 태깅만
+ *   하고, 확정된 버전은 그 다음에 오는 아무 PR 의 `/qa` 가 함께 실어 나른다.
+ *
+ * 사용: `node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs" [--write]`
+ *   (qa/release 스킬이 프로젝트 루트 cwd 에서 호출).
+ * cwd 무관 — 실행 cwd 가 속한 git 트리의 루트를 기준으로 파일과 git 을 해석한다.
  */
 import { execFileSync, execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
+const WRITE = process.argv.includes("--write");
 
 // repo 루트 = 실행 cwd 가 속한 git 트리의 루트. 호출 계약: qa/release 스킬이
 // 프로젝트 루트 cwd 에서 실행한다. 스크립트 위치 기준을 쓰지 않는 이유 — 플러그인
@@ -112,11 +125,27 @@ const CONCRETE_RE = /v\d+\.\d+\.\d+/; // 이미 확정된 도입 버전
 const ADOPT_RE = /^\s*(?:-\s+)?\*\*도입\*\*\s*:/;
 const PR_RE = /\(#(\d+)\)/; // (#123)
 
+/**
+ * 도입 라인의 값 세그먼트(`**도입**:` 와 `(#N)` 사이)를 확정 버전으로 교체한다.
+ * 세그먼트를 통째로 갈아끼우므로 placeholder 표기가 무엇이든(`미정` / `v3.x.x` / `(예정)` / `확정`)
+ * 표준 형태 `**도입**: vX.Y.Z (#N)` 로 정규화된다. `(#N)` 뒤 텍스트는 보존한다.
+ */
+function fillLine(text, version) {
+	const head = text.match(ADOPT_RE)[0]; // 들여쓰기·대시 포함, 콜론까지
+	return `${head} ${version} ${text.slice(text.search(PR_RE))}`;
+}
+
 // 결정 문서를 하나도 못 찾으면 루트 해석 실패 — 조용한 false-green 방지 위해 명시 fail.
+// (호출 계약: 결정 문서가 없는 프로젝트에서는 스킬 조건표가 이 스크립트를 아예 호출하지 않는다.)
 if (!FILES.some((f) => existsSync(join(ROOT, f)))) {
 	console.error(`[error] 결정 문서를 찾을 수 없습니다 (ROOT=${ROOT}). repo 루트 해석 실패.`);
 	process.exit(1);
 }
+
+// write 모드는 로컬 태그가 최신이어야 STALE 판정이 성립한다 — 태그가 낡으면 확정된 건이
+// PENDING 으로 오분류돼 게이트가 조용히 새고 드리프트가 그대로 남는다. best-effort — 오프라인/원격
+// 부재는 정상 경로라 stderr 까지 버려 리포트 노이즈를 만들지 않는다.
+if (WRITE) sh("git fetch --tags --quiet origin 2>/dev/null");
 
 const hasOriginMain = sh("git rev-parse --verify --quiet origin/main") !== "";
 const logBase = hasOriginMain ? "origin/main" : "HEAD";
@@ -143,54 +172,63 @@ function earliestTag(sha) {
 	return tags ? tags.split("\n")[0] : "";
 }
 
-const stale = []; // 릴리스됐으나 placeholder
-const pending = []; // 이번 릴리스 대상
-const unresolved = []; // (#N) 없음 — 수동 확인
+const stale = []; // 릴리스돼 버전이 확정된 placeholder (write 모드에선 채운 목록 = filled)
+const pending = []; // 미릴리스 — 값이 아직 없음
+const unresolved = []; // (#N) 없음 또는 gh 폴백 실패 — 수동 확인
 
 for (const file of FILES) {
 	if (!existsSync(join(ROOT, file))) continue;
-	readFileSync(join(ROOT, file), "utf8")
-		.split("\n")
-		.forEach((text, i) => {
-			if (!ADOPT_RE.test(text) || CONCRETE_RE.test(text)) return; // 도입 라인 아님 or 이미 확정
-			const loc = `${file}:${i + 1}`;
-			const prm = text.match(PR_RE);
-			if (!prm) {
-				unresolved.push({ loc, text: text.trim() });
-				return;
+	const path = join(ROOT, file);
+	const lines = readFileSync(path, "utf8").split("\n");
+	let dirty = false;
+
+	lines.forEach((text, i) => {
+		if (!ADOPT_RE.test(text) || CONCRETE_RE.test(text)) return; // 도입 라인 아님 or 이미 확정
+		const loc = `${file}:${i + 1}`;
+		const prm = text.match(PR_RE);
+		if (!prm) {
+			unresolved.push({ loc, text: text.trim() });
+			return;
+		}
+		const resolved = resolveSha(prm[1]);
+		if (resolved.status === "ok") return; // 미머지로 간주(gh 폴백까지 확인) → placeholder 정상
+		if (resolved.status === "unresolved") {
+			unresolved.push({ loc, text: `${text.trim()}  — ${resolved.reason}` });
+			return;
+		}
+		const tag = earliestTag(resolved.sha);
+		if (tag) {
+			stale.push({ loc, pr: prm[1], version: tag });
+			if (WRITE) {
+				lines[i] = fillLine(text, tag);
+				dirty = true;
 			}
-			const resolved = resolveSha(prm[1]);
-			if (resolved.status === "ok") return; // 미머지로 간주(gh 폴백까지 확인) → placeholder 정상
-			if (resolved.status === "unresolved") {
-				unresolved.push({ loc, text: `${text.trim()}  — ${resolved.reason}` });
-				return;
-			}
-			const { sha } = resolved;
-			const tag = earliestTag(sha);
-			if (tag) {
-				stale.push({ loc, pr: prm[1], version: tag });
-			} else if (hasOriginMain && sh(`git merge-base --is-ancestor ${sha} origin/main && echo y`) === "y") {
-				pending.push({ loc, pr: prm[1] });
-			}
-			// 미머지 → OK
-		});
+		} else if (hasOriginMain && sh(`git merge-base --is-ancestor ${resolved.sha} origin/main && echo y`) === "y") {
+			pending.push({ loc, pr: prm[1] });
+		}
+		// 미머지 → OK
+	});
+
+	if (dirty) writeFileSync(path, lines.join("\n"));
 }
 
-let bad = false;
 if (stale.length) {
-	bad = true;
-	console.log("STALE — 릴리스됐으나 도입 버전 미확정 (아래 버전으로 채우세요):");
+	console.log(
+		WRITE
+			? "FILLED — 도입 버전을 확정했습니다 (이번 커밋에 포함하세요):"
+			: "STALE — 릴리스로 버전이 확정됐으나 문서 미반영 (write 게이트 미실행 — 아래 값으로 채우세요):",
+	);
 	for (const s of stale) console.log(`  ${s.loc}  (#${s.pr})  →  ${s.version}`);
 }
 if (pending.length) {
-	bad = true;
-	console.log("PENDING — 이번 릴리스에 나감 (태깅할 버전으로 채우세요):");
+	console.log("PENDING — 미릴리스 (값이 아직 없음, 릴리스 다음 /qa 가 자동 확정):");
 	for (const p of pending) console.log(`  ${p.loc}  (#${p.pr})`);
 }
 if (unresolved.length) {
 	console.log("UNRESOLVED — 자동 판정 불가(#N 없음 또는 gh 폴백 실패), 수동 확인:");
 	for (const u of unresolved) console.log(`  ${u.loc}  ${u.text}`);
 }
-if (!bad && !unresolved.length) console.log("OK — 모든 도입 버전이 확정됨.");
+if (!stale.length) console.log(WRITE ? "OK — 확정할 도입 버전 없음." : "OK — 릴리스된 Decision 의 도입 버전이 모두 확정됨.");
 
-process.exit(bad ? 1 : 0);
+// write: 채운 게 있으면 1 (커밋 필요 신호) / read-only: STALE 이 있으면 1 (드리프트 신호)
+process.exit(stale.length ? 1 : 0);

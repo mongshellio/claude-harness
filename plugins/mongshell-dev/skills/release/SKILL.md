@@ -149,13 +149,14 @@ GitHub Release 에 사용할 notes 문자열을 메모리상에서 조립한다.
 
 - Changes 는 `gh issue list --milestone <식별자> --state closed --json title,labels` 로 자동 수집하고 `type` 라벨(`type:feat` / `type:fix` / `type:chore` / `type:refactor`)로 그룹핑한다 (라벨 3축 정의 권위: create-issue 스킬).
 - 마일스톤이 없으면 Changes 절을 생략하고 요약 줄만 포함한다.
-- **도입 버전 정합 검사 (결정론적 — 스크립트)**: 릴리스된 Decision 의 `**도입**: vX.Y.Z` 라인이 채워졌는지 스크립트로 검사한다. 이번 사이클뿐 아니라 **밀린 placeholder 전부**를 정확한 버전과 함께 리포트한다 (하네스 스크립트 우선 원칙 — grep+추론 대신 스크립트).
+- **도입 버전 드리프트 검사 (read-only — 스크립트)**: Decision 의 `**도입**` 라인은 **생성물**이고, 채우는 주체는 `/qa` 의 write 게이트다 (`--write` — 릴리스 다음에 오는 아무 PR 이 실어 나른다). `/release` 는 그 게이트가 돌았는지만 읽기 전용으로 확인한다.
   ```bash
   node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs"
   ```
-  - **STALE**(이미 릴리스됐는데 placeholder — 채웠어야 함) / **PENDING**(이번 릴리스에 나감) 이 있으면 exit 1 + 채울 `파일:line → 버전`을 출력한다. PENDING 은 Step 0 에서 정한 이번 버전을 (release 세션이 직접 편집하지 않고) 채울 값으로 안내한다.
-  - warn 후 사용자에게 그 목록을 제시한다. `/release` 는 파일을 수정하지 않으므로 운영자가 **별도 doc 수정**으로 반영한다(이번 릴리스 전/후 doc PR). 이 검사는 **게이트락이 아니다** (경고만 — 목록 제시 후 confirm 없이 진행 가능). 미릴리스 Decision 의 placeholder 는 정상(검출 안 됨).
-- **후속 doc PR 복붙 블록**: STALE/PENDING 이 있었으면 Step 5 리포트에 스크립트 출력 기반 실행 블록을 자동 조립해 첨부한다 — `git switch -c chore/decision-versions-vX.Y.Z` → 채울 `파일:line → 값` 목록 → `git commit -m "chore(docs): Decision 도입버전 확정 vX.Y.Z"` → `gh pr create` 까지 한 블록 (실행은 사용자/후속 세션 몫 — 파일 편집 없음 불변식 유지).
+  - **STALE** (릴리스로 값이 확정됐는데 문서 미반영) 이 있으면 exit 1 + `파일:line → 버전` 목록. 정상 흐름이면 나오지 않는다 — 나왔다면 **직전 릴리스 이후 `/qa` 를 한 번도 안 거친 PR 만 머지됐다**는 신호다. warn 후 목록을 제시하고, 다음 `/qa` 가 자동 확정한다고 안내한다.
+  - **PENDING** (이번 릴리스에 나가는 Decision — 값이 아직 존재하지 않음) 은 정상 상태다. 정보성 출력만 하고 exit 에 영향을 주지 않는다. 이번 태깅 후 다음 PR 의 `/qa` 가 확정한다.
+  - 이 검사는 **게이트락이 아니다** (경고만 — 목록 제시 후 confirm 없이 진행 가능). 미머지 Decision 의 placeholder 는 정상(검출 안 됨).
+  - `/release` 는 파일을 수정하지 않는다는 불변식은 그대로다. **후속 doc PR 을 안내하지 않는다** — 전용 chore PR 은 이 설계에서 사라졌다.
 
 조립 형식:
 
@@ -296,7 +297,8 @@ gh api -X PATCH repos/{owner}/{repo}/milestones/{N} -f state=closed
 | `push origin vX.Y.Z` 거부 (중복 tag) | fetch → tag max 재계산 → 해당 버전 이미 존재 시 "다른 세션이 이미 릴리스함" stop |
 | `gh release create` "already exists" | 정상으로 간주하고 계속 진행 |
 | destructive 마이그레이션 구문 발견 (Step 1b-B) | warn + confirm 대기. 사용자 확인 시 계속, 취소 시 stop |
-| STALE/PENDING 도입 버전 placeholder 발견 (Step 2, `check-decision-versions.mjs` exit 1) | warn + 채울 목록 제시, confirm 없이 진행 — 운영자가 별도 doc PR 로 반영 (게이트락 아님) |
+| STALE 도입 버전 발견 (Step 2, `check-decision-versions.mjs` exit 1) | warn + 목록 제시, confirm 없이 진행 — `/qa` write 게이트 미실행 신호. 다음 `/qa` 가 자동 확정 (게이트락 아님) |
+| PENDING 도입 버전 (Step 2) | 정상 — 정보성 출력만. 이번 태깅 후 다음 PR 의 `/qa` 가 확정 |
 
 ---
 
@@ -306,4 +308,4 @@ gh api -X PATCH repos/{owner}/{repo}/milestones/{N} -f state=closed
 - git tag · GitHub Release · milestone 은 **본 스킬이 단일 동기화 경로** — 직접 `git tag` / `gh release create` / milestone close 금지.
 - **릴리스 효과: origin/main 태깅 + gh release/milestone close. main 에 push 하지 않는다** — PR squash merge 가 origin/main 을 갱신하는 유일한 경로다.
 - 코드 편집은 이 스킬 범위 외. **파일 편집 없음** — 릴리스가 커밋을 만들지 않는다 (버전 SSOT = git tag max — 파일에 버전을 쓰면 SSOT 가 갈라진다). `package.json version` 은 `0.0.0` 동결, 문서(.md) 편집도 없다.
-- `docs/architecture-decisions.md` / `docs/harness-decisions.md` 는 이 스킬의 수정 대상이 아니다.
+- `docs/architecture-decisions.md` / `docs/harness-decisions.md` 는 이 스킬의 수정 대상이 아니다. Decision 도입 버전은 `/qa` 의 write 게이트가 채우는 **생성물**이다 — `/release` 는 태깅만 하고, 확정된 값은 다음 PR 이 실어 나른다. 전용 chore PR 을 만들지 않는다.

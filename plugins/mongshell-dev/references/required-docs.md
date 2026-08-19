@@ -223,7 +223,10 @@ frontmatter 없음 — doc-reviewer 일반 문서 skip / `adr-content-mismatch` 
 ### 하네스가 요구하는 본문 구조
 
 - **`## Decision N: <제목>` 헤더 형식** — 콜론 + 제목 필수 (`${CLAUDE_PLUGIN_ROOT}/scripts/check-decisions-index.mjs` 의 헤더 정규식 `^## Decision (#?\d+(?:-\d+)?):` 이 콜론을 앵커로 요구). `N` 은 레거시 순번(정수, 예: `76`) 또는 신규 이슈 식별자(`#` 접두, 예: `#992`; 한 이슈 다결정 시 `#992-1`) — 식별자 정규식 `#?\d+(-\d+)?`. doc-reviewer / harness-reviewer 의 `adr-content-mismatch` 검증 정규식이 이 식별자 형식을 가정.
-- **Decision 헤더 직후 `**도입**: vX.Y.Z (#이슈)` 라인** — 결정의 도입 시점 SSOT이자 `${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs` 가 버전 판정에 읽는 기계 앵커(`(#이슈)`). `/release` Step 2 가 새 Decision 추가 시 이 라인 존재 여부 확인 (누락 시 warn). GitHub Release 의 별도 인덱스 의존을 만들지 않는다.
+- **Decision 헤더 직후 `**도입**: vX.Y.Z (#이슈)` 라인** — 결정의 도입 시점 표기이자 `${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs` 가 버전 판정에 읽는 기계 앵커(`(#이슈)`). GitHub Release 의 별도 인덱스 의존을 만들지 않는다.
+  - **버전 값은 손으로 쓰지 않는다 — 생성물이다.** Decision 을 작성하는 시점(기능 PR)엔 도입 버전을 알 수 없으므로 placeholder 로 적고, 릴리스 후 `/qa` 의 write 게이트(`check-decision-versions.mjs --write`)가 `(#이슈)` → first-parent 커밋 → 최초 포함 태그로 파생해 채운다. SSOT 는 여전히 git tag — 문서는 그 파생 표시일 뿐이다.
+  - **placeholder 표준 표기 = `미정`** → `- **도입**: 미정 (#992)`. 레거시 표기(`v3.x.x` / `(예정)` / `확정`)도 판정에는 지장이 없고, write 게이트가 값 세그먼트를 통째로 교체할 때 함께 표준형으로 정규화된다. `v3.x.x` 류는 major 를 손으로 추측하는 표기라 새로 쓰지 않는다.
+  - `(#이슈)` 는 **반드시** 남긴다 — 없으면 스크립트가 UNRESOLVED 로 표면화하고 자동 확정이 불가능하다.
 - 각 Decision 본문에 **결정·이유·결과** 세 요소 — `adr-content-mismatch` 검증 시 인용 맥락과 이 셋 중 어느 하나의 직접 연결 여부를 대조 확인.
 - **`## 상태 인덱스` 표** — 모든 Decision 헤더와 1:1 대응(각 식별자가 한 행). `${CLAUDE_PLUGIN_ROOT}/scripts/check-decisions-index.mjs` 가 헤더 집합 ↔ 인덱스 집합을 대조해 MISSING(헤더에만)/DANGLING(인덱스에만)/중복을 검출한다 (개수 비교 아님 — `/qa` 가 decisions 파일 변경 시 실행).
 
