@@ -102,6 +102,7 @@ git diff $RANGE --name-only | grep -E '<ui-path-pattern>' > "$QA_TMP/ui-changed.
 | build | **제외** | 코드 파일 변경 있음 | `--build` 지정 시 |
 | **schema 정합성** | **DB schema 경로 변경 있음** | **DB schema 경로 변경 있음** | — | <!-- ERD 산출물 검사: <db-erd-cmd> 실패 시 P0. 규약 권위: DB 영역 CLAUDE.md -->
 | **decisions 인덱스 정합** | **decisions 파일(`architecture-decisions.md` / `harness-decisions.md` / `decisions-archive.md`) 변경 있음** | **동일** | — |
+| **decisions 도입 버전 확정** | **결정 문서 존재 시 항상** (변경 여부 무관) | **동일** | — | <!-- Step 2 에서 자동 write. 조건이 "변경 있음" 이 아닌 이유는 아래 항목 참조 -->
 | code-reviewer | 코드 파일 변경 있음 + `--skip-code-review` 미지정 | 코드 파일 변경 있음 + `--skip-code-review` 미지정 | — |
 | security-reviewer | **제외** | 코드 파일 변경 있음 | `--security` 지정 시 |
 | gemini | **제외** | **제외** | `--gemini` 지정 시 |
@@ -111,6 +112,7 @@ git diff $RANGE --name-only | grep -E '<ui-path-pattern>' > "$QA_TMP/ui-changed.
 | harness-reviewer | `$QA_TMP/harness-domain.txt` 비어있지 않음 | 동일 | — |
 
 - **DB schema 경로 변경 여부**: 변경 파일 목록에 DB schema 경로(권위: DB 영역 CLAUDE.md — 구체 경로 패턴은 해당 문서 참조)가 포함되면 schema 정합성 검사를 실행 목록에 추가한다. schema 정합성은 (a) 마이그레이션 dirty + (b) ERD 산출물 staleness 두 검사를 함께 수행한다 (구체 명령·경로 권위: 동일 CLAUDE.md).
+- **decisions 도입 버전 확정의 조건**: `docs/architecture-decisions.md` 또는 `docs/harness-decisions.md` 존재 여부만 본다 — 이번 diff 가 그 파일을 건드렸는지는 무관하다 (이유는 Step 2). 결정 문서가 하나도 없는 프로젝트에서 스킵해야 하는 이유는 스크립트가 문서 부재를 루트 해석 실패로 판정하기 때문이다.
 
 ### Step 2: 조건부 사전 확인
 
@@ -144,6 +146,20 @@ QA_TMP="/tmp/qa-$(basename "$(git rev-parse --show-toplevel)")"
 
 완료 후 "node_modules 미설치 감지 → 의존성 설치 자동 실행 (Xs)" 한 줄 안내.
 - 설치 실패 시 (exit code ≠ 0) "환경 셋업 실패 — 직접 의존성 설치 후 재호출 바랍니다. 결과 디렉토리(`$QA_TMP`)의 `install.txt` 확인." 안내 후 스킬 종료 (stop).
+
+**decisions 도입 버전 확정 (Step 1 조건표에서 실행 예정인 경우에만 — 의도된 자동화 예외):**
+
+Decision 의 `**도입**: <버전> (#N)` 은 **생성물**이다. 값이 확정되는 순간은 태깅 시점인데 `/release` 는 파일을 편집하지 않으므로(버전 SSOT = git tag max), 확정된 값은 릴리스 **다음에 오는 아무 PR** 이 이 자리에서 함께 실어 나른다. 전용 chore PR 을 만들지 않는다.
+
+```bash
+QA_TMP="/tmp/qa-$(basename "$(git rev-parse --show-toplevel)")"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs" --write > "$QA_TMP/decision-versions.txt" 2>&1
+```
+
+- 스크립트는 `(#N)` → first-parent 커밋 → `git tag --contains` 최초 태그로 결정론적으로 값을 파생해 in-place 로 채운다. 릴리스 안 된 건(PENDING)은 값이 아직 없으므로 건드리지 않고, 자동 판정 불가(UNRESOLVED)는 쓰지 않고 목록만 남긴다.
+- **exit 1 = 채운 게 있음** (실패 아님). 리포트 요약에 `🔧 Decision 도입 버전: N건 자동 확정 — 이번 커밋에 포함하세요` 와 `파일:line → 버전` 목록을 출력한다. **P0 로 분류하지 않는다** — 채우는 것 자체가 곧 fix 라 사람이 판단할 여지가 없다. 커밋 강제는 `/pr` Step 0 의 dirty 게이트가 담당하고, 놓쳐도 다음 `/qa` 가 다시 채운다.
+- exit 0 이면 P0/P1 항목을 만들지 않는다 — Step 5 요약 표의 상태 줄만 남는다.
+- UNRESOLVED 목록이 있으면 P1 로 리포트한다 (수동 확인 필요 — 도입 라인에 `(#N)` 이 없거나 gh 역조회 실패).
 
 ### Step 3: 병렬 실행 (bash 명령 + Agent 호출)
 
@@ -302,6 +318,7 @@ Step 1 의 UI 변경 판정에서 UI 변경이 확인됐고 `--branch` 인 경�
 | build | 실패 시 항상 | — | — |
 | schema 정합성 | `<migration-dir>/` 또는 ERD 산출물 dirty 시 항상 | — | — |
 | decisions 인덱스 정합 | `check-decisions-index.mjs` exit 1 (MISSING/DANGLING/중복/NO_SECTION) 시 항상 | — | — |
+| decisions 도입 버전 확정 | **없음** (exit 1 = 자동 확정 완료 — 실패 아님) | UNRESOLVED 목록 있음 | — |
 | code-reviewer | P0 그대로 | P1 그대로 | P2 그대로 |
 | security-reviewer | P0 그대로 | P1 그대로 | P2 그대로 |
 | gemini | critical (→ P0, 외부 LLM 의견 표시) | suggestion (→ P1) | nice (→ P2) |
@@ -353,6 +370,7 @@ toolchain 검증(typecheck/test/lint/build/schema/decisions 인덱스) 실패는
 - 빌드: ✅ Passed / ❌ Failed (`--branch` 또는 `--build` 시) / ⏭️ 단발 기본 — 스킵
 - schema 정합성 (마이그레이션 + ERD 산출물): ✅ Passed / ❌ Failed / ⏭️ DB schema 경로 변경 없음 — 스킵
 - decisions 인덱스 정합: ✅ Passed / ❌ Failed (exit 1 — MISSING/DANGLING/중복/NO_SECTION) / ⏭️ decisions 파일 변경 없음 — 스킵
+- Decision 도입 버전: ✅ 확정할 것 없음 / 🔧 N건 자동 확정 — 이번 커밋에 포함하세요 (`파일:line → vX.Y.Z` 목록) / ⏭️ 결정 문서 없음 — 스킵
 - browser 검증: ✅ 완료 (`--branch` + UI 변경) / ⏭️ 단발 기본 — 스킵 / ⏭️ UI 변경 없음 — 스킵 / ⏭️ preview_start 실패 — 스킵
 - `code-reviewer`: ✅ 완료 / ⏭️ `--skip-code-review` 사용자 명시 스킵
 - `security-reviewer`: ✅ 완료 / ⏭️ 단발 기본 — 스킵 / ⏭️ 코드 변경 없음 — 스킵
@@ -498,9 +516,9 @@ security-reviewer / build 등 `--branch` 전용 항목과 외부 LLM 리뷰(`--g
 ## 제약
 
 - 검증만 수행한다. 코드 자동 수정 X. 수정은 사용자 결정 후 `developer` 서브에이전트에 위임한다.
-- 의도된 자동화 예외(node_modules 자동 설치, schema 정합성 자동 실행)는 Step 2 참조.
+- 의도된 자동화 예외(node_modules 자동 설치, schema 정합성 자동 실행, decisions 도입 버전 자동 확정)는 Step 2 참조. 셋 다 **결정론적 생성물의 재생성**이지 판단이 필요한 수정이 아니다.
 - 메인 세션이 절차를 오케스트레이션한다. QA 검증 효과:
   - 코드 변경 (프로젝트 toolchain 입력) 은 `developer` 서브에이전트에 위임
-  - 문서 / 하네스 편집은 X — Agent 호출 + bash 검증만 수행
+  - 문서 / 하네스 편집은 X — Agent 호출 + bash 검증만 수행 (예외: 위 도입 버전 자동 확정 — 모델이 아니라 스크립트가 결정론적으로 쓴다)
 - 검증 명령(typecheck/test/lint/build)은 `/qa` 가 직접 bash로 실행한다(`${CLAUDE_PLUGIN_ROOT}/README.md` "검증 명령 실행 책임" 참조). reviewer 에이전트는 순수 코드 리뷰만 수행한다.
 - `/release` 는 toolchain 게이트를 갖지 않는다. `/qa` 가 PR 머지 전 검증 권위이며, `/release` 는 PR 게이트 통과 상태를 신뢰하고 origin/main 을 태깅한다.
