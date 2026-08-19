@@ -103,6 +103,7 @@ git diff $RANGE --name-only | grep -E '<ui-path-pattern>' > "$QA_TMP/ui-changed.
 | **schema 정합성** | **DB schema 경로 변경 있음** | **DB schema 경로 변경 있음** | — | <!-- ERD 산출물 검사: <db-erd-cmd> 실패 시 P0. 규약 권위: DB 영역 CLAUDE.md -->
 | **decisions 인덱스 정합** | **decisions 파일(`architecture-decisions.md` / `harness-decisions.md` / `decisions-archive.md`) 변경 있음** | **동일** | — |
 | **decisions 도입 버전 확정** | **결정 문서 존재 시 항상** (변경 여부 무관) | **동일** | — | <!-- Step 2 에서 자동 write. 조건이 "변경 있음" 이 아닌 이유는 아래 항목 참조 -->
+| **harness-core 마커 정합** | **루트 `CLAUDE.md` 에 마커 존재 시 항상** (변경 여부 무관) | **동일** | — | <!-- 정본이 바뀌면 내 diff 와 무관하게 낡는다 -->
 | code-reviewer | 코드 파일 변경 있음 + `--skip-code-review` 미지정 | 코드 파일 변경 있음 + `--skip-code-review` 미지정 | — |
 | security-reviewer | **제외** | 코드 파일 변경 있음 | `--security` 지정 시 |
 | gemini | **제외** | **제외** | `--gemini` 지정 시 |
@@ -113,6 +114,7 @@ git diff $RANGE --name-only | grep -E '<ui-path-pattern>' > "$QA_TMP/ui-changed.
 
 - **DB schema 경로 변경 여부**: 변경 파일 목록에 DB schema 경로(권위: DB 영역 CLAUDE.md — 구체 경로 패턴은 해당 문서 참조)가 포함되면 schema 정합성 검사를 실행 목록에 추가한다. schema 정합성은 (a) 마이그레이션 dirty + (b) ERD 산출물 staleness 두 검사를 함께 수행한다 (구체 명령·경로 권위: 동일 CLAUDE.md).
 - **decisions 도입 버전 확정의 조건**: `docs/architecture-decisions.md` 또는 `docs/harness-decisions.md` 존재 여부만 본다 — 이번 diff 가 그 파일을 건드렸는지는 무관하다 (이유는 Step 2). 결정 문서가 하나도 없는 프로젝트에서 스킵해야 하는 이유는 스크립트가 문서 부재를 루트 해석 실패로 판정하기 때문이다.
+- **harness-core 마커 정합의 조건**: 루트 `CLAUDE.md` 에 `harness-core` 마커가 있으면 실행한다 — 이번 diff 와 무관하다. 낡음은 내 변경이 아니라 정본(`${CLAUDE_PLUGIN_ROOT}/references/claude-md-core.md`) 갱신으로 발생하기 때문이다. 마커가 없는 프로젝트(코어 블록 미삽입) 와 `CLAUDE_PLUGIN_ROOT` 가 없는 vendored 소비 프로젝트는 스킵된다.
 
 ### Step 2: 조건부 사전 확인
 
@@ -167,7 +169,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decision-versions.mjs" --write > "$QA_
 
 메인 세션이 절차를 오케스트레이션한다 (진입점 디스패처). 코드/문서 편집은 본 스킬 범위 외 — 자세한 제약은 `## 제약` 섹션 참조.
 
-**Step 3a: bash 명령 동시 (typecheck + test + lint + 조건부 schema 정합성 + 조건부 decisions 인덱스 정합 + 조건부 build + gemini(--gemini opt-in 전용) + deepseek(--deepseek opt-in 전용))**
+**Step 3a: bash 명령 동시 (typecheck + test + lint + 조건부 schema 정합성 + 조건부 decisions 인덱스 정합 + 조건부 harness-core 마커 정합 + 조건부 build + gemini(--gemini opt-in 전용) + deepseek(--deepseek opt-in 전용))**
 
 Step 0 의 표에서 결정한 `RANGE` 값과 Step 1 의 확정 검증 목록을 사용한다. 실행 예정인 것만 백그라운드로 실행한다. Split 결과 파일(`$QA_TMP/md-changed.txt` 등)은 Step 1 에서 이미 생성되어 있다.
 
@@ -189,6 +191,13 @@ QA_TMP="/tmp/qa-$(basename "$(git rev-parse --show-toplevel)")"
 # 헤더 식별자 집합 vs 상태 인덱스/목차 집합을 대조해 MISSING(헤더에만)/DANGLING(인덱스에만)/중복/NO_SECTION 을 검출한다 —
 # 개수만 비교하던 이전 방식이 놓치던 "한쪽 누락 + 반대쪽 오타" 상쇄 케이스까지 잡는다. 불일치 시 exit 1.
 # node "${CLAUDE_PLUGIN_ROOT}/scripts/check-decisions-index.mjs" > "$QA_TMP/decisions-index.txt" 2>&1 &
+# harness-core 마커 정합: 루트 CLAUDE.md 에 마커가 있을 때만 실행
+# 정본과 복사본의 마커 문자열을 대조한다. 자동 반영은 하지 않는다 — 정책 노브 항목은
+# 프로젝트별 확정값이라 블록 통째 치환이 성립하지 않고, 병합은 사람/세션 판단이 필요하다.
+# CORE="${CLAUDE_PLUGIN_ROOT}/references/claude-md-core.md"
+# SSOT=$(grep -o 'harness-core: [0-9-]*' "$CORE" | head -1)
+# MINE=$(grep -o 'harness-core: [0-9-]*' CLAUDE.md | head -1)
+# [ "$SSOT" = "$MINE" ] || echo "STALE: 루트 CLAUDE.md = ${MINE:-없음} / 정본 = $SSOT" > "$QA_TMP/harness-core.txt" &
 # build: --branch 또는 --build opt-in 시에만 실행
 # <build-cmd> > "$QA_TMP/build.txt" 2>&1 &
 # gemini: --gemini opt-in 시에만 실행 (--branch 자동 포함 아님)
@@ -319,6 +328,7 @@ Step 1 의 UI 변경 판정에서 UI 변경이 확인됐고 `--branch` 인 경�
 | schema 정합성 | `<migration-dir>/` 또는 ERD 산출물 dirty 시 항상 | — | — |
 | decisions 인덱스 정합 | `check-decisions-index.mjs` exit 1 (MISSING/DANGLING/중복/NO_SECTION) 시 항상 | — | — |
 | decisions 도입 버전 확정 | **없음** (exit 1 = 자동 확정 완료 — 실패 아님) | UNRESOLVED 목록 있음 | — |
+| harness-core 마커 정합 | — | `$QA_TMP/harness-core.txt` 가 비어있지 않음 (정본 블록 재복사 필요 — 정책 노브 항목은 프로젝트 값 유지) | — |
 | code-reviewer | P0 그대로 | P1 그대로 | P2 그대로 |
 | security-reviewer | P0 그대로 | P1 그대로 | P2 그대로 |
 | gemini | critical (→ P0, 외부 LLM 의견 표시) | suggestion (→ P1) | nice (→ P2) |
