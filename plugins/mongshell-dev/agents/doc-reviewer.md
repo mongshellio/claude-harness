@@ -100,6 +100,25 @@ fd ".*\.md" docs/ -x head -n 30  # frontmatter 영역만 빠르게 스캔
 - `adr-content-mismatch` — 본문이 특정 Decision (`Decision N` / `Decision #N` / `(Decision N 참조)` / `[Decision N](docs/architecture-decisions.md#decision-n-...)`) 을 인용했지만, `docs/architecture-decisions.md` 의 해당 Decision 본문의 결정·이유·결과 중 어느 것과도 직접 연결되지 않는 맥락에서 사용됨. 잘못된 권위 부여. (신규 결정은 이슈번호로 식별 — `Decision #N`.)
 - `exception-clause-accumulation` — 단서 조항이 쌓여 권위 문서 간 SSOT / R&R 분리 / 입력 도메인 분리의 경계가 흐려지는 경우. 공통 판정 기준은 하네스 `README.md` § "예외 조항 누적 검증".
 
+**서술 통화(currency) 검증 — 권위 문서는 현재형으로만 쓴다**
+
+이력의 권위는 결정 로그(`docs/architecture-decisions.md`)와 git 이다. 나머지 권위 문서는 **지금 무엇이 참인지**만 서술한다 — 독자가 과거를 알아야 현재를 이해하는 구조는 시간이 지나면 조용히 거짓이 된다.
+
+- `stale-history` — 현재 상태를 과거와의 대비로 서술한다 (예: "예전엔 X 였지만 지금은 Y", "이제는 Y 다", "~로 바뀌었다"). 결론만 현재형으로 남기면 대비 없이 성립하는지 확인하고, 성립하면 대비를 삭제 제안한다.
+  - **예외 — 부정형 가드**: "X 를 다시 도입하지 않는다 / X 는 기각됐다" 처럼 **재도입을 막기 위해** 과거를 인용하는 문장은 유지한다. 판별 기준은 "그 문장이 없으면 누군가 X 를 다시 제안하는가" 이다.
+- `self-evident` — 그 문서가 이미 세운 전제에서 곧바로 유도되는 문장, 또는 같은 문서가 앞에서 이미 말한 것의 되풀이 (예: 관리형 SaaS 라고 선언한 문서가 "이용자가 우리가 아닐 수 있다" 를 따로 서술). 전제가 아니라 **거기서 나오는 비자명한 결론**만 남기도록 제안한다.
+  - 자명한 서술이 자리를 차지하면서 **정작 비자명한 사실이 빠져 있는** 경우가 흔하다 — 그때는 `declaration-mismatch` 를 함께 단다.
+- `spent-purpose` — 특정 국면(전환·마이그레이션·도입기)을 넘기려고 들어온 서술인데 그 국면이 끝나 더는 일하지 않는 경우. **형태만으로는 보이지 않는다** — 과거 대비 문장이 아니어도 해당하므로 `stale-history` 로는 걸리지 않는다.
+  - 판별 절차: 어색하거나 과하게 강조된 서술을 만나면 **다듬기 전에 도입 커밋을 먼저 연다.**
+    ```bash
+    git log -S "<그 서술의 특징적 문구>" --oneline -- <파일> | tail -1   # 최초 도입 커밋
+    git log -1 --format=%B <그 해시>                                    # 왜 넣었는지
+    ```
+    커밋 본문이 "그때 X 를 막으려고" 라고 말하는데 그 X 가 이미 착륙했거나 제거됐으면 이 키에 해당한다.
+  - **목적이 소진된 서술은 문장을 고칠 대상이 아니라 지울 대상이다.** 다듬어서 살리면 같은 서술을 여러 라운드에 걸쳐 조금씩 깎게 된다.
+  - 실사례: 관리형 SaaS 전환기에 "테넌트 격리 작업이 *1인 운영이라 과하다* 로 기각되는 것" 을 막으려고 한 원칙을 세 곳에 박았는데, 격리·RLS·크레덴셜 축이 모두 착륙한 뒤에도 강조만 남아 있었다.
+
+
 **Decision 참조 검증 (`adr-content-mismatch`) 절차**:
 
 하네스 `README.md` § "Decision 참조 검증 (adr-content-mismatch 공통 절차)" 를 따른다.
@@ -107,7 +126,7 @@ fd ".*\.md" docs/ -x head -n 30  # frontmatter 영역만 빠르게 스캔
 - 검출 도메인 = `**/*.md` 중 하네스 루트 밖 (frontmatter 있는 권위 문서만. 일반 문서 및 harness 도메인은 적용 X)
 
 각 위반은 다음 정보 포함:
-- 위반 키 (role-violation / kind-mismatch / non-goals-overlap / cross-authority-overlap / ssot-duplicate / declaration-mismatch / contradiction / adr-content-mismatch / exception-clause-accumulation 중 하나)
+- 위반 키 (role-violation / kind-mismatch / non-goals-overlap / cross-authority-overlap / ssot-duplicate / declaration-mismatch / contradiction / adr-content-mismatch / exception-clause-accumulation / stale-history / self-evident / spent-purpose 중 하나)
 - `파일:line` (또는 line range)
 - 짧은 인용 (1~2 문장)
 - 제안 (옮길 곳 / 삭제 / 줄임 / 통합)
@@ -119,8 +138,8 @@ fd ".*\.md" docs/ -x head -n 30  # frontmatter 영역만 빠르게 스캔
 등급 의미는 하네스 `README.md` "공통 분류 등급" 참조. 본 reviewer 의 위반 키 → 등급 매핑:
 
 - `P0` — frontmatter 스키마 위반 / non-goals-overlap 명백한 단락 침범 / cross-authority-overlap 통째 단락 / ssot-duplicate 큰 블록 / contradiction / exception-clause-accumulation 명세 안 cross-domain 침범 예외
-- `P1` — role-violation 한두 줄 / kind-mismatch / declaration-mismatch / ssot-duplicate 짧은 문장 / exception-clause-accumulation 정책 비대칭 단서
-- `P2` — 톤·표현 보완
+- `P1` — role-violation 한두 줄 / kind-mismatch / declaration-mismatch / ssot-duplicate 짧은 문장 / exception-clause-accumulation 정책 비대칭 단서 / **stale-history** (사실이 조용히 거짓이 될 수 있는 서술) / **spent-purpose** (도입 목적이 소진된 서술)
+- `P2` — 톤·표현 보완 / **self-evident** (오도하지는 않으나 자리를 차지하는 서술 — 비자명한 사실 누락을 동반하면 P1)
 
 ### 6. 리포트
 
@@ -149,8 +168,11 @@ fd ".*\.md" docs/ -x head -n 30  # frontmatter 영역만 빠르게 스캔
   - 제안: architecture.md 에서는 CLAUDE.md 링크로 대체.
 - [ ] `[adr-content-mismatch]` `docs/architecture.md:N` — `(Decision 7 참조)` 가 단일 앱 구조 결정과 무관한 맥락에서 사용됨. Decision 인용 제거 또는 해당 결정을 담은 별도 Decision 작성 후 교체 권장.
 - [ ] `[exception-clause-accumulation]` `docs/PHILOSOPHY.md:N` — "단, ..." 조항이 SSOT 원칙에 단서를 덧붙여 원칙의 경계를 흐림. 제거 또는 별도 권위 문서로 분리 권장.
+- [ ] `[stale-history]` `docs/development.md:N` — "예전엔 워크트리마다 손으로 채웠지만 이제는 훅이 처리한다" — 대비가 없어도 "훅이 처리한다" 로 성립. 앞절 삭제 권장.
+- [ ] `[spent-purpose]` `docs/PHILOSOPHY.md:N` — 도입 커밋(abc1234)이 "전환기에 리뷰어가 옛 전제로 기각하는 것을 막으려고" 넣었다고 밝힌 서술. 그 전환이 완료돼 지금은 일하지 않음. 다듬지 말고 삭제 권장.
 
 ### P2
+- [ ] `[self-evident]` `docs/PHILOSOPHY.md:N` — 관리형 SaaS 선언 바로 다음 줄의 "이용자가 우리가 아닐 수 있다". 앞 문장에서 곧바로 유도됨. 결론만 남기고 삭제 권장.
 - [ ] ...
 
 ## 다음 단계
